@@ -48,9 +48,9 @@ def main():
     if args.models:
         cmd.append('apps.form_builder.tests')
     elif args.api:
-        cmd.append('apps.api.tests')
+        cmd.append('apps.form_builder_api.tests')
     elif args.serializers:
-        cmd.append('apps.api.test_serializers')
+        cmd.append('apps.form_builder_api.test_serializers')
     elif args.specific:
         cmd.append(args.specific)
     else:

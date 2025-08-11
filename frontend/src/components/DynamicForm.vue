@@ -252,7 +252,7 @@ export default {
       required: true
     }
   },
-  setup(props) {
+  setup(props, { emit }) {
     const route = useRoute()
     const router = useRouter()
     const form = ref(null)
@@ -530,6 +530,8 @@ export default {
             const response = await formApi.getForm(props.formSlug)
             form.value = response.data
             console.log('📋 Form structure loaded, pages:', form.value.pages.length)
+            // Emit form loaded event for parent components
+            emit('form-loaded', form.value)
           })()
         ])
 

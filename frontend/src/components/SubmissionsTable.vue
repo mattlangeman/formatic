@@ -161,6 +161,13 @@
               <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                 <div class="flex justify-end gap-2">
                   <button
+                    v-if="!submission.is_complete"
+                    @click="continueSubmission(submission)"
+                    class="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 transition-colors duration-200"
+                  >
+                    Continue
+                  </button>
+                  <button
                     @click="viewSubmission(submission)"
                     class="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 hover:bg-primary-200 transition-colors duration-200"
                   >
@@ -175,12 +182,6 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0V4a2 2 0 012-2h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                     </svg>
                     Table
-                  </button>
-                  <button
-                    @click="continueSubmission(submission)"
-                    class="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 transition-colors duration-200"
-                  >
-                    {{ submission.is_complete ? 'View' : 'Continue' }}
                   </button>
                 </div>
               </td>

@@ -96,8 +96,10 @@
         </div>
       </div>
 
-      <!-- Form Pages as Tables -->
-      <div class="space-y-8">
+      <!-- Main Content Area: Form Tables + Charts -->
+      <div class="flex gap-6">
+        <!-- Left Side: Form Tables (50% width) -->
+        <div class="w-1/2 space-y-8">
         <div 
           v-for="page in form.pages" 
           :key="page.id"
@@ -118,14 +120,10 @@
                   <template v-if="isAddressField(question)">
                     <!-- Main Address Question Row -->
                     <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-4 whitespace-normal text-sm text-gray-900 align-top border-r border-gray-100 w-1/3">
+                      <td class="px-6 py-2 whitespace-normal text-sm text-gray-900 align-top border-r border-gray-100 w-1/3">
                         <div class="space-y-1">
                           <div class="font-medium" v-html="getFormattedLabel(question)"></div>
                           <div v-if="question.subtext" class="text-gray-500 text-xs">{{ question.subtext }}</div>
-                          <div class="flex items-center space-x-2 text-xs text-gray-400">
-                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Address</span>
-                            <span v-if="question.required" class="text-red-500">Required</span>
-                          </div>
                         </div>
                       </td>
                       <td class="px-6 py-2 text-xs text-gray-500 italic w-2/3">
@@ -135,14 +133,14 @@
                     
                     <!-- Street Address Row -->
                     <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-3 pl-12 text-sm text-gray-600 border-r border-gray-100">
+                      <td class="px-6 py-2 pl-12 text-sm text-gray-600 border-r border-gray-100">
                         <div class="flex items-center">
                           <span class="text-gray-400 mr-2">└</span>
                           Street Address
                           <span v-if="question.required" class="text-red-400 ml-1">*</span>
                         </div>
                       </td>
-                      <td class="px-6 py-3">
+                      <td class="px-6 py-2">
                         <FormKit
                           type="text"
                           :name="`${question.slug}__street`"
@@ -160,14 +158,14 @@
 
                     <!-- City Row -->
                     <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-3 pl-12 text-sm text-gray-600 border-r border-gray-100">
+                      <td class="px-6 py-2 pl-12 text-sm text-gray-600 border-r border-gray-100">
                         <div class="flex items-center">
                           <span class="text-gray-400 mr-2">└</span>
                           City
                           <span v-if="question.required" class="text-red-400 ml-1">*</span>
                         </div>
                       </td>
-                      <td class="px-6 py-3">
+                      <td class="px-6 py-2">
                         <FormKit
                           type="text"
                           :name="`${question.slug}__city`"
@@ -185,14 +183,14 @@
 
                     <!-- State/Province Row -->
                     <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-3 pl-12 text-sm text-gray-600 border-r border-gray-100">
+                      <td class="px-6 py-2 pl-12 text-sm text-gray-600 border-r border-gray-100">
                         <div class="flex items-center">
                           <span class="text-gray-400 mr-2">└</span>
                           State/Province
                           <span v-if="question.required" class="text-red-400 ml-1">*</span>
                         </div>
                       </td>
-                      <td class="px-6 py-3">
+                      <td class="px-6 py-2">
                         <FormKit
                           type="text"
                           :name="`${question.slug}__state`"
@@ -210,14 +208,14 @@
 
                     <!-- Postal Code Row -->
                     <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-3 pl-12 text-sm text-gray-600 border-r border-gray-100">
+                      <td class="px-6 py-2 pl-12 text-sm text-gray-600 border-r border-gray-100">
                         <div class="flex items-center">
                           <span class="text-gray-400 mr-2">└</span>
                           Postal Code
                           <span v-if="question.required" class="text-red-400 ml-1">*</span>
                         </div>
                       </td>
-                      <td class="px-6 py-3">
+                      <td class="px-6 py-2">
                         <FormKit
                           type="text"
                           :name="`${question.slug}__postal_code`"
@@ -235,14 +233,14 @@
 
                     <!-- Country Row -->
                     <tr class="hover:bg-gray-50 border-b-2 border-gray-200">
-                      <td class="px-6 py-3 pl-12 text-sm text-gray-600 border-r border-gray-100">
+                      <td class="px-6 py-2 pl-12 text-sm text-gray-600 border-r border-gray-100">
                         <div class="flex items-center">
                           <span class="text-gray-400 mr-2">└</span>
                           Country
                           <span v-if="question.required" class="text-red-400 ml-1">*</span>
                         </div>
                       </td>
-                      <td class="px-6 py-3">
+                      <td class="px-6 py-2">
                         <FormKit
                           type="select"
                           :name="`${question.slug}__country`"
@@ -263,19 +261,15 @@
                   <!-- Regular Questions -->
                   <tr v-else class="hover:bg-gray-50" :key="`regular-${question.id}`">
                     <!-- Question Column -->
-                    <td class="px-6 py-4 whitespace-normal text-sm text-gray-900 align-top border-r border-gray-100 w-1/3">
+                    <td class="px-6 py-2 whitespace-normal text-sm text-gray-900 border-r border-gray-100 w-1/3" :class="isSingleLineInput(question) ? 'align-middle' : 'align-top'">
                       <div class="space-y-1">
                         <div class="font-medium" v-html="getFormattedLabel(question)"></div>
                         <div v-if="question.subtext" class="text-gray-500 text-xs">{{ question.subtext }}</div>
-                        <div class="flex items-center space-x-2 text-xs text-gray-400">
-                          <span class="px-2 py-1 bg-gray-100 rounded">{{ getQuestionTypeLabel(question) }}</span>
-                          <span v-if="question.required" class="text-red-500">Required</span>
-                        </div>
                       </div>
                     </td>
 
                     <!-- Answer Column -->
-                    <td class="px-6 py-4 text-sm text-gray-900 align-top w-2/3">
+                    <td class="px-6 py-2 text-sm text-gray-900 w-2/3" :class="isSingleLineInput(question) ? 'align-middle' : 'align-top'">
                       <div :class="isRadioOrCheckbox(question) ? 'radio-checkbox-field' : 'max-w-lg'">
                         <FormKit
                           :type="getFormKitType(question)"
@@ -300,23 +294,61 @@
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- Form Summary/Status -->
-      <div class="mt-8 bg-gray-50 rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Form Summary</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span class="font-medium text-gray-600">Total Pages:</span>
-            <span class="ml-2">{{ form.pages.length }}</span>
-          </div>
-          <div>
-            <span class="font-medium text-gray-600">Total Questions:</span>
-            <span class="ml-2">{{ totalQuestions }}</span>
-          </div>
-          <div>
-            <span class="font-medium text-gray-600">Completed Fields:</span>
-            <span class="ml-2">{{ completedFields }}/{{ totalQuestions }}</span>
+        </div>
+
+        <!-- Right Side: Charts & Analytics (50% width) -->
+        <div class="w-1/2">
+          <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Form Analytics</h2>
+            
+            <!-- Chart Placeholders -->
+            <div class="space-y-6">
+              <!-- Completion Progress Chart -->
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div class="mb-4">
+                  <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Completion Progress</h3>
+                <p class="text-gray-500 text-sm">Chart showing form completion progress over time</p>
+              </div>
+
+              <!-- Field Completion Status -->
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div class="mb-4">
+                  <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Field Completion</h3>
+                <p class="text-gray-500 text-sm">Pie chart showing completed vs incomplete fields</p>
+              </div>
+
+              <!-- Response Summary -->
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div class="mb-4">
+                  <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Response Analysis</h3>
+                <p class="text-gray-500 text-sm">Summary statistics and response patterns</p>
+              </div>
+
+              <!-- Time Analytics -->
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div class="mb-4">
+                  <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Time Analytics</h3>
+                <p class="text-gray-500 text-sm">Time spent on form and completion rates</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -336,7 +368,7 @@ import { formApi, submissionApi, questionTypesApi } from '../services/api'
 
 export default {
   name: 'FormTableEditor',
-  setup() {
+  setup(props, { emit }) {
     const route = useRoute()
     
     // State
@@ -356,43 +388,6 @@ export default {
       return form.value && Object.keys(formData.value).length > 0 && Object.keys(questionTypes.value).length > 0
     })
 
-    const totalQuestions = computed(() => {
-      if (!form.value) return 0
-      return form.value.pages.reduce((total, page) => total + page.questions.length, 0)
-    })
-
-    const completedFields = computed(() => {
-      if (!form.value || !formData.value) return 0
-      let completed = 0
-      
-      form.value.pages.forEach(page => {
-        page.questions.forEach(question => {
-          if (isAddressField(question)) {
-            // Check address sub-fields
-            const addressFields = ['street', 'city', 'state', 'postal_code', 'country']
-            let addressCompleted = false
-            
-            for (const field of addressFields) {
-              const value = formData.value[`${question.slug}__${field}`]
-              if (value !== undefined && value !== null && value !== '') {
-                addressCompleted = true
-                break
-              }
-            }
-            
-            if (addressCompleted) completed++
-          } else {
-            // Regular field
-            const value = formData.value[question.slug]
-            if (value !== undefined && value !== null && value !== '') {
-              completed++
-            }
-          }
-        })
-      })
-      
-      return completed
-    })
 
     const allRequiredFieldsFilled = computed(() => {
       if (!form.value || !formData.value) return false
@@ -628,10 +623,6 @@ export default {
       return question.text || question.slug
     }
 
-    const getQuestionTypeLabel = (question) => {
-      const questionType = questionTypes.value[question.type]
-      return questionType?.name || 'Unknown'
-    }
 
     const isAddressField = (question) => {
       const questionType = questionTypes.value[question.type]
@@ -655,6 +646,13 @@ export default {
     const isRadioOrCheckbox = (question) => {
       const formKitType = getFormKitType(question)
       return formKitType === 'radio' || formKitType === 'checkbox'
+    }
+
+    const isSingleLineInput = (question) => {
+      const formKitType = getFormKitType(question)
+      // Single-line inputs that should be center-aligned
+      const singleLineTypes = ['text', 'email', 'number', 'tel', 'url', 'password', 'date', 'time', 'datetime-local', 'month', 'week']
+      return singleLineTypes.includes(formKitType)
     }
 
     const getCountryOptions = (question) => {
@@ -734,6 +732,9 @@ export default {
         
         console.log('✅ Form loaded:', response.data.name)
         console.log('📄 Pages:', response.data.pages.length)
+        
+        // Emit form loaded event for parent components
+        emit('form-loaded', response.data)
         
         return response.data
       } catch (err) {
@@ -953,8 +954,6 @@ export default {
       
       // Computed
       isFormReady,
-      totalQuestions,
-      completedFields,
       allRequiredFieldsFilled,
       
       // Methods
@@ -964,9 +963,9 @@ export default {
       getQuestionOptions,
       getQuestionTypeConfig,
       getFormattedLabel,
-      getQuestionTypeLabel,
       isAddressField,
       isRadioOrCheckbox,
+      isSingleLineInput,
       getCountryOptions,
       updateField,
       getFormViewUrl,

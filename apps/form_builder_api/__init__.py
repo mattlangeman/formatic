@@ -1,0 +1,1 @@
+default_app_config = 'apps.form_builder_api.apps.FormBuilderApiConfig'

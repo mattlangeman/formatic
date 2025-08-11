@@ -55,7 +55,7 @@ THIRD_PARTY_APPS = [
 ]
 
 PROJECT_APPS = [
-    "apps.api",
+    "apps.form_builder_api",
     "apps.form_builder",
 ]
 
