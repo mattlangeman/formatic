@@ -1,0 +1,29 @@
+[run]
+source = apps
+omit = 
+    */migrations/*
+    */venv/*
+    */env/*
+    */tests/*
+    */test_*.py
+    manage.py
+    formatic_project/settings.py
+    formatic_project/wsgi.py
+    formatic_project/asgi.py
+    */factories.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    class .*\(Protocol\):
+    @(abc\.)?abstractmethod
+
+show_missing = True
+precision = 2
+
+[html]
+directory = htmlcov

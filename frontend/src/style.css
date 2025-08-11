@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom form styles */
+@layer components {
+  .form-container {
+    @apply max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg;
+  }
+  
+  .form-header {
+    @apply mb-6 text-center;
+  }
+  
+  .form-title {
+    @apply text-3xl font-bold text-gray-900 mb-2;
+  }
+  
+  .form-description {
+    @apply text-gray-600 text-lg;
+  }
+}

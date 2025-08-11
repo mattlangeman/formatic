@@ -1,0 +1,228 @@
+[
+  {
+    "model": "form_builder.questiontype",
+    "pk": "550e8400-e29b-41d4-a716-446655440001",
+    "fields": {
+      "name": "Short Text",
+      "slug": "short-text",
+      "description": "A single-line text input field for brief responses like names, titles, or short answers.",
+      "config": {
+        "input_type": "text",
+        "max_length": 255,
+        "placeholder": {
+          "en": "Enter your answer...",
+          "fr": "Entrez votre réponse...",
+          "es": "Ingresa tu respuesta..."
+        },
+        "validation": {
+          "min_length": 0,
+          "max_length": 255
+        }
+      },
+      "created_datetime": "2024-01-01T00:00:00Z",
+      "modified_datetime": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "form_builder.questiontype",
+    "pk": "550e8400-e29b-41d4-a716-446655440002",
+    "fields": {
+      "name": "Number",
+      "slug": "number",
+      "description": "A numeric input field for collecting numerical data like age, quantity, or ratings.",
+      "config": {
+        "input_type": "number",
+        "step": 1,
+        "placeholder": {
+          "en": "Enter a number...",
+          "fr": "Entrez un nombre...",
+          "es": "Ingresa un número..."
+        },
+        "validation": {
+          "min": null,
+          "max": null,
+          "decimal_places": 0
+        }
+      },
+      "created_datetime": "2024-01-01T00:00:00Z",
+      "modified_datetime": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "form_builder.questiontype",
+    "pk": "550e8400-e29b-41d4-a716-446655440003",
+    "fields": {
+      "name": "Dropdown",
+      "slug": "dropdown",
+      "description": "A dropdown selection field allowing users to choose one option from a predefined list.",
+      "config": {
+        "input_type": "select",
+        "multiple": false,
+        "options": {
+          "en": [
+            {"value": "option1", "label": "Option 1"},
+            {"value": "option2", "label": "Option 2"},
+            {"value": "option3", "label": "Option 3"}
+          ],
+          "fr": [
+            {"value": "option1", "label": "Option 1"},
+            {"value": "option2", "label": "Option 2"},
+            {"value": "option3", "label": "Option 3"}
+          ],
+          "es": [
+            {"value": "option1", "label": "Opción 1"},
+            {"value": "option2", "label": "Opción 2"},
+            {"value": "option3", "label": "Opción 3"}
+          ]
+        },
+        "placeholder": {
+          "en": "Select an option...",
+          "fr": "Sélectionnez une option...",
+          "es": "Selecciona una opción..."
+        }
+      },
+      "created_datetime": "2024-01-01T00:00:00Z",
+      "modified_datetime": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "form_builder.questiontype",
+    "pk": "550e8400-e29b-41d4-a716-446655440004",
+    "fields": {
+      "name": "Yes/No",
+      "slug": "yes-no",
+      "description": "A boolean choice field for yes/no questions or true/false responses.",
+      "config": {
+        "input_type": "radio",
+        "options": {
+          "en": [
+            {"value": "yes", "label": "Yes"},
+            {"value": "no", "label": "No"}
+          ],
+          "fr": [
+            {"value": "yes", "label": "Oui"},
+            {"value": "no", "label": "Non"}
+          ],
+          "es": [
+            {"value": "yes", "label": "Sí"},
+            {"value": "no", "label": "No"}
+          ]
+        },
+        "default": null
+      },
+      "created_datetime": "2024-01-01T00:00:00Z",
+      "modified_datetime": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "form_builder.questiontype",
+    "pk": "550e8400-e29b-41d4-a716-446655440005",
+    "fields": {
+      "name": "Address",
+      "slug": "address",
+      "description": "A structured address input with separate fields for street, city, state/province, postal code, and country.",
+      "config": {
+        "input_type": "address",
+        "fields": {
+          "street": {
+            "required": true,
+            "label": {
+              "en": "Street Address",
+              "fr": "Adresse de rue",
+              "es": "Dirección"
+            },
+            "placeholder": {
+              "en": "123 Main Street",
+              "fr": "123 Rue Principale",
+              "es": "123 Calle Principal"
+            }
+          },
+          "city": {
+            "required": true,
+            "label": {
+              "en": "City",
+              "fr": "Ville",
+              "es": "Ciudad"
+            },
+            "placeholder": {
+              "en": "City name",
+              "fr": "Nom de la ville",
+              "es": "Nombre de la ciudad"
+            }
+          },
+          "state": {
+            "required": true,
+            "label": {
+              "en": "State/Province",
+              "fr": "État/Province",
+              "es": "Estado/Provincia"
+            },
+            "placeholder": {
+              "en": "State or Province",
+              "fr": "État ou Province",
+              "es": "Estado o Provincia"
+            }
+          },
+          "postal_code": {
+            "required": true,
+            "label": {
+              "en": "Postal Code",
+              "fr": "Code postal",
+              "es": "Código postal"
+            },
+            "placeholder": {
+              "en": "12345",
+              "fr": "H1A 1A1",
+              "es": "12345"
+            }
+          },
+          "country": {
+            "required": true,
+            "label": {
+              "en": "Country",
+              "fr": "Pays",
+              "es": "País"
+            },
+            "placeholder": {
+              "en": "Country",
+              "fr": "Pays",
+              "es": "País"
+            },
+            "type": "select",
+            "restrict_to_single": false,
+            "single_country": null
+          }
+        },
+        "validation": {
+          "geocoding": false,
+          "format": "standard"
+        },
+        "country_options": {
+          "en": [
+            {"value": "US", "label": "United States"},
+            {"value": "CA", "label": "Canada"},
+            {"value": "FR", "label": "France"},
+            {"value": "ES", "label": "Spain"},
+            {"value": "GB", "label": "United Kingdom"}
+          ],
+          "fr": [
+            {"value": "US", "label": "États-Unis"},
+            {"value": "CA", "label": "Canada"},
+            {"value": "FR", "label": "France"},
+            {"value": "ES", "label": "Espagne"},
+            {"value": "GB", "label": "Royaume-Uni"}
+          ],
+          "es": [
+            {"value": "US", "label": "Estados Unidos"},
+            {"value": "CA", "label": "Canadá"},
+            {"value": "FR", "label": "Francia"},
+            {"value": "ES", "label": "España"},
+            {"value": "GB", "label": "Reino Unido"}
+          ]
+        }
+      },
+      "created_datetime": "2024-01-01T00:00:00Z",
+      "modified_datetime": "2024-01-01T00:00:00Z"
+    }
+  }
+]
