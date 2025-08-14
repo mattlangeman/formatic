@@ -112,6 +112,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 class FormQuestionSerializer(serializers.ModelSerializer):
     """Lightweight serializer for questions in form contexts - references type by slug only."""
     type = serializers.CharField(source='type.slug', read_only=True)
+    is_disabled = serializers.SerializerMethodField()
     
     @extend_schema_field(QUESTION_CONFIG_SCHEMA)
     def get_config(self, obj):
@@ -124,12 +125,23 @@ class FormQuestionSerializer(serializers.ModelSerializer):
     @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
     def get_conditional_logic(self, obj):
         return obj.conditional_logic
+    
+    @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
+    def get_disabled_condition(self, obj):
+        return obj.disabled_condition
+    
+    def get_is_disabled(self, obj):
+        """Evaluate if question should be disabled based on conditions."""
+        # This will be evaluated on the frontend based on current form answers
+        # We just pass the condition for the frontend to evaluate
+        return False  # Default to not disabled, frontend will evaluate
 
     class Meta:
         model = Question
         fields = [
             'id', 'name', 'slug', 'text', 'subtext', 'required', 
-            'config', 'validation', 'conditional_logic', 'order', 'type'
+            'config', 'validation', 'conditional_logic', 'disabled_condition',
+            'order', 'type', 'is_disabled'
         ]
 
 
@@ -148,6 +160,7 @@ class FormPageSerializer(serializers.ModelSerializer):
     """Lightweight serializer for pages in form contexts - uses minimal question data."""
     questions = serializers.SerializerMethodField()
     question_groups = QuestionGroupSerializer(many=True, read_only=True)
+    is_disabled = serializers.SerializerMethodField()
     
     def get_questions(self, obj):
         # Only get questions directly on page (not in groups)
@@ -157,16 +170,26 @@ class FormPageSerializer(serializers.ModelSerializer):
     @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
     def get_conditional_logic(self, obj):
         return obj.conditional_logic
+    
+    @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
+    def get_disabled_condition(self, obj):
+        return obj.disabled_condition
         
     @extend_schema_field(PAGE_CONFIG_SCHEMA)
     def get_config(self, obj):
         return obj.config
+    
+    def get_is_disabled(self, obj):
+        """Evaluate if page should be disabled based on conditions."""
+        # This will be evaluated on the frontend based on current form answers
+        # We just pass the condition for the frontend to evaluate
+        return False  # Default to not disabled, frontend will evaluate
 
     class Meta:
         model = Page
         fields = [
-            'id', 'name', 'slug', 'order', 'conditional_logic', 
-            'config', 'questions', 'question_groups'
+            'id', 'name', 'slug', 'order', 'conditional_logic', 'disabled_condition',
+            'config', 'questions', 'question_groups', 'is_disabled'
         ]
 
 
@@ -408,6 +431,7 @@ class CreateSubmissionSerializer(serializers.Serializer):
     form_slug = serializers.CharField()
     user_session_id = serializers.CharField(required=False, allow_blank=True)
     user_email = serializers.EmailField(required=False, allow_blank=True)
+    initial_answers = serializers.JSONField(required=False, default=dict, help_text="Initial answers to pre-populate the form")
 
 
 class UpdateSubmissionSerializer(serializers.Serializer):
@@ -422,7 +446,7 @@ class CreatePageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Page
-        fields = ['name', 'slug', 'conditional_logic', 'config']
+        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'config']
         
 
 class UpdatePageSerializer(serializers.ModelSerializer):
@@ -430,7 +454,7 @@ class UpdatePageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Page
-        fields = ['name', 'slug', 'conditional_logic', 'config']
+        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'config']
 
 
 class CreateQuestionSerializer(serializers.ModelSerializer):
@@ -441,7 +465,7 @@ class CreateQuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = [
             'name', 'slug', 'text', 'subtext', 'required', 
-            'config', 'validation', 'conditional_logic', 'type_slug'
+            'config', 'validation', 'conditional_logic', 'disabled_condition', 'type_slug'
         ]
     
     def create(self, validated_data):
@@ -457,7 +481,7 @@ class UpdateQuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = [
             'name', 'slug', 'text', 'subtext', 'required', 
-            'config', 'validation', 'conditional_logic'
+            'config', 'validation', 'conditional_logic', 'disabled_condition'
         ]
 
 

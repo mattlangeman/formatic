@@ -369,20 +369,21 @@ class FormSubmissionViewSetTests(APITestCase):
         self.assertTrue(submission.is_complete)
         self.assertIsNotNone(submission.completed_datetime)
     
-    def test_update_submission_invalid_data(self):
-        """Test updating submission with invalid data"""
+    def test_update_submission_partial(self):
+        """Test partial update of submission"""
         submission = FormSubmissionFactory(form_version=self.published_version)
         
         data = {
             'is_complete': True
-            # Missing required 'answers' field
+            # answers field is optional for partial updates
         }
         
         url = reverse('submission-detail', kwargs={'pk': submission.id})
-        response = self.client.put(url, data, format='json')
+        response = self.client.patch(url, data, format='json')
         
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('answers', response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        submission.refresh_from_db()
+        self.assertTrue(submission.is_complete)
     
     def test_complete_submission_action(self):
         """Test the complete action endpoint"""

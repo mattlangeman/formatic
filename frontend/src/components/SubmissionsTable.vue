@@ -420,16 +420,24 @@ export default {
         { key: 'form_version_number', label: 'Version' },
       ]
 
-      // Add only the first question as a column
+      // Add only the first visible (non-hidden) question as a column
       if (formStructure.value?.pages?.length > 0) {
         const firstPage = formStructure.value.pages[0]
         if (firstPage.questions?.length > 0) {
-          const firstQuestion = firstPage.questions[0]
-          columns.push({
-            key: firstQuestion.slug,
-            label: firstQuestion.text || formatFieldName(firstQuestion.slug),
-            isAnswer: true
-          })
+          // Find the first non-hidden question
+          const firstVisibleQuestion = firstPage.questions.find(q => 
+            q.type !== 'hidden' && 
+            !q.config?.ui_hidden && 
+            !q.config?.excluded_from_display
+          )
+          
+          if (firstVisibleQuestion) {
+            columns.push({
+              key: firstVisibleQuestion.slug,
+              label: firstVisibleQuestion.text || formatFieldName(firstVisibleQuestion.slug),
+              isAnswer: true
+            })
+          }
         }
       }
 

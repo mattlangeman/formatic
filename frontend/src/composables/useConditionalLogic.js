@@ -154,6 +154,10 @@ export function useConditionalLogic() {
     // Add individual questions
     if (page.questions) {
       questions.push(...page.questions.filter(question => {
+        // Filter out hidden fields from display
+        if (question.type === 'hidden' || question.config?.ui_hidden || question.config?.excluded_from_display) {
+          return false
+        }
         const logic = evaluateConditionalLogic(question, formData)
         return logic.visible
       }))
@@ -164,6 +168,10 @@ export function useConditionalLogic() {
       page.question_groups.forEach(group => {
         if (group.questions) {
           questions.push(...group.questions.filter(question => {
+            // Filter out hidden fields from display
+            if (question.type === 'hidden' || question.config?.ui_hidden || question.config?.excluded_from_display) {
+              return false
+            }
             const logic = evaluateConditionalLogic(question, formData)
             return logic.visible
           }))
@@ -260,6 +268,54 @@ export function useConditionalLogic() {
     return rules.join('|')
   }
 
+  /**
+   * Evaluate disabled condition for a page or question
+   */
+  const evaluateDisabledCondition = (entity, formData) => {
+    if (!entity.disabled_condition || Object.keys(entity.disabled_condition).length === 0) {
+      return false // Not disabled
+    }
+
+    const { field, operator, value } = entity.disabled_condition
+    const fieldValue = formData[field]
+
+    // Use the same evaluation logic as conditional logic
+    const condition = { question_slug: field, operator, value }
+    const result = evaluateCondition(condition, formData)
+    
+    // Debug logging for disabled conditions
+    if (result) {
+      console.log(`🔒 ${entity.slug || entity.name} is DISABLED by condition:`, {
+        field,
+        operator,
+        value,
+        fieldValue
+      })
+    }
+    
+    return result
+  }
+
+  /**
+   * Check if a page is disabled
+   */
+  const isPageDisabled = (page, formData) => {
+    return evaluateDisabledCondition(page, formData)
+  }
+
+  /**
+   * Check if a question is disabled (page disabled OR question disabled)
+   */
+  const isQuestionDisabled = (question, page, formData) => {
+    // First check if the page is disabled
+    if (isPageDisabled(page, formData)) {
+      return true
+    }
+    
+    // Then check if the question itself is disabled
+    return evaluateDisabledCondition(question, formData)
+  }
+
   return {
     evaluateCondition,
     evaluateRule,
@@ -268,6 +324,9 @@ export function useConditionalLogic() {
     getVisibleQuestions,
     getQuestionOptions,
     getQuestionRequired,
-    getValidationRules
+    getValidationRules,
+    evaluateDisabledCondition,
+    isPageDisabled,
+    isQuestionDisabled
   }
 }

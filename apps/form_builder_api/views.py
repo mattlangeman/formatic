@@ -314,6 +314,19 @@ class FormSubmissionViewSet(ModelViewSet):
                     "user_session_id": "sess_abc123",
                     "user_email": "user@example.com"
                 }
+            ),
+            OpenApiExample(
+                'Create submission with initial answers',
+                request_only=True,
+                value={
+                    "form_slug": "customer-survey",
+                    "user_session_id": "sess_abc123",
+                    "user_email": "user@example.com",
+                    "initial_answers": {
+                        "tool_mode": "premium",
+                        "user_type": "business"
+                    }
+                }
             )
         ]
     )
@@ -343,7 +356,8 @@ class FormSubmissionViewSet(ModelViewSet):
                 form_version=latest_version,
                 user_session_id=serializer.validated_data.get('user_session_id'),
                 user_email=serializer.validated_data.get('user_email'),
-                ip_address=ip_address
+                ip_address=ip_address,
+                answers=serializer.validated_data.get('initial_answers', {})
             )
             
             return Response(

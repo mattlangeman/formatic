@@ -1,0 +1,19 @@
+[
+  {
+    "model": "form_builder.questiontype",
+    "fields": {
+      "name": "Hidden Field",
+      "slug": "hidden",
+      "description": "A hidden field that stores data but is not visible to users",
+      "config": {
+        "input_type": "hidden",
+        "ui_hidden": true,
+        "validation": {
+          "editable_by_user": false
+        },
+        "allows_default_value": true,
+        "excluded_from_display": true
+      }
+    }
+  }
+]

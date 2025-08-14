@@ -42,6 +42,7 @@ class DynamicForm(models.Model):
                 'slug': page.slug,
                 'order': page.order,
                 'conditional_logic': page.conditional_logic,
+                'disabled_condition': page.disabled_condition,
                 'config': page.config,
                 'questions': [],
                 'question_groups': []
@@ -60,6 +61,7 @@ class DynamicForm(models.Model):
                     'config': question.config,
                     'validation': question.validation,
                     'conditional_logic': question.conditional_logic,
+                    'disabled_condition': question.disabled_condition,
                     'order': question.order
                 }
                 page_data['questions'].append(question_data)
@@ -89,6 +91,7 @@ class DynamicForm(models.Model):
                         'config': question.config,
                         'validation': question.validation,
                         'conditional_logic': question.conditional_logic,
+                        'disabled_condition': question.disabled_condition,
                         'order': question.order
                     }
                     group_data['questions'].append(question_data)
@@ -143,6 +146,11 @@ class Page(models.Model):
     slug = models.SlugField(max_length=50, blank=True)
     order = models.IntegerField()
     conditional_logic = models.JSONField(default=dict, blank=True)
+    disabled_condition = models.JSONField(
+        default=dict, 
+        blank=True,
+        help_text="Condition that determines if this page should be disabled"
+    )
     config = models.JSONField(default=dict, blank=True)
     created_datetime = models.DateTimeField(default=timezone.now)
     modified_datetime = models.DateTimeField(auto_now=True)
@@ -335,6 +343,11 @@ class Question(models.Model):
     config = models.JSONField(default=dict, blank=True)
     validation = models.JSONField(default=dict, blank=True)
     conditional_logic = models.JSONField(default=dict, blank=True)
+    disabled_condition = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Condition that determines if this question should be disabled"
+    )
     order = models.IntegerField()
     created_datetime = models.DateTimeField(default=timezone.now)
     modified_datetime = models.DateTimeField(auto_now=True)

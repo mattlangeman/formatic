@@ -166,7 +166,7 @@
                           @update:model-value="(value) => updateField(`${question.slug}__street`, value)"
                           :validation="question.required ? 'required' : undefined"
                           placeholder="Enter street address"
-                          :disabled="isComplete"
+                          :disabled="isFieldDisabled(question, page)"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
                           input-class="form-table-input"
@@ -191,7 +191,7 @@
                           @update:model-value="(value) => updateField(`${question.slug}__city`, value)"
                           :validation="question.required ? 'required' : undefined"
                           placeholder="Enter city"
-                          :disabled="isComplete"
+                          :disabled="isFieldDisabled(question, page)"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
                           input-class="form-table-input"
@@ -217,7 +217,7 @@
                           :validation="getStateFieldRequiredWrapper(question) ? 'required' : undefined"
                           :placeholder="getStateFieldPlaceholderWrapper(question)"
                           :options="getStateFieldOptionsWrapper(question)"
-                          :disabled="isComplete"
+                          :disabled="isFieldDisabled(question, page)"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
                           input-class="form-table-input"
@@ -242,7 +242,7 @@
                           @update:model-value="(value) => updateField(`${question.slug}__postal_code`, value)"
                           :validation="question.required ? 'required' : undefined"
                           placeholder="Enter postal code"
-                          :disabled="isComplete"
+                          :disabled="isFieldDisabled(question, page)"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
                           input-class="form-table-input"
@@ -268,7 +268,7 @@
                           :validation="question.required ? 'required' : undefined"
                           :options="getCountryOptions(question)"
                           placeholder="Select a country"
-                          :disabled="isComplete"
+                          :disabled="isFieldDisabled(question, page)"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
                           input-class="form-table-input"
@@ -318,7 +318,7 @@
                           :options="getQuestionOptions(question)"
                           :multiple="question.config?.multiple"
                           :required="question.required"
-                          :disabled="isComplete"
+                          :disabled="isFieldDisabled(question, page)"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
                           input-class="form-table-input"
@@ -411,7 +411,7 @@ export default {
     const route = useRoute()
     
     // Use shared composables
-    const { getVisibleQuestions, evaluateConditionalLogic, getQuestionOptions: getConditionalQuestionOptions } = useConditionalLogic()
+    const { getVisibleQuestions, evaluateConditionalLogic, getQuestionOptions: getConditionalQuestionOptions, isPageDisabled, isQuestionDisabled } = useConditionalLogic()
     const {
       getStateFieldVisibility,
       getStateFieldRequired,
@@ -827,6 +827,51 @@ export default {
       console.log(`🔄 Updated formData, field ${fieldName} now:`, formData.value[fieldName])
     }
 
+    // Helper function to determine if a field should be disabled
+    const isFieldDisabled = (question, page) => {
+      // Always disabled if form is complete
+      if (isComplete.value) {
+        return true
+      }
+      
+      // Check if question is disabled by page or question conditions
+      const disabled = isQuestionDisabled(question, page, formData.value)
+      
+      // Debug logging for page-4 (Project Demands)
+      if (page.slug === 'page-4') {
+        console.log(`🔒 Field ${question.slug} disabled check:`, {
+          pageSlug: page.slug,
+          disabled_condition: page.disabled_condition,
+          tool_mode: formData.value.tool_mode,
+          disabled
+        })
+      }
+      
+      return disabled
+    }
+
+    // Helper to find page for a question
+    const findPageForQuestion = (questionToFind) => {
+      if (!form.value?.pages) return null
+      
+      for (const page of form.value.pages) {
+        // Check regular questions
+        if (page.questions?.some(q => q.id === questionToFind.id)) {
+          return page
+        }
+        
+        // Check questions in groups
+        if (page.question_groups) {
+          for (const group of page.question_groups) {
+            if (group.questions?.some(q => q.id === questionToFind.id)) {
+              return page
+            }
+          }
+        }
+      }
+      return null
+    }
+
     const getFormViewUrl = () => {
       if (submissionId.value) {
         return { 
@@ -1155,6 +1200,8 @@ export default {
       isSingleLineInput,
       getCountryOptions,
       updateField,
+      isFieldDisabled,
+      findPageForQuestion,
       getFormViewUrl,
       getAllQuestionsFromPage,
       getStateFieldVisibilityWrapper,

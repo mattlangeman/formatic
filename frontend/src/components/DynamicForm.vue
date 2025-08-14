@@ -937,6 +937,10 @@ export default {
       // Add individual questions
       if (page.questions) {
         questions.push(...page.questions.filter(question => {
+          // Filter out hidden fields
+          if (question.type === 'hidden' || question.config?.ui_hidden || question.config?.excluded_from_display) {
+            return false
+          }
           const logic = evaluateConditionalLogic(question, formData.value)
           return logic.visible
         }))
@@ -947,6 +951,10 @@ export default {
         page.question_groups.forEach(group => {
           if (group.questions) {
             questions.push(...group.questions.filter(question => {
+              // Filter out hidden fields
+              if (question.type === 'hidden' || question.config?.ui_hidden || question.config?.excluded_from_display) {
+                return false
+              }
               const logic = evaluateConditionalLogic(question, formData.value)
               return logic.visible
             }))

@@ -383,13 +383,12 @@ class UpdateSubmissionSerializerTests(TestCase):
         self.assertEqual(validated_data['answers'], answers)
         self.assertTrue(validated_data['is_complete'])
     
-    def test_required_answers(self):
-        """Test that answers field is required"""
+    def test_optional_answers(self):
+        """Test that answers field is optional for partial updates"""
         data = {'is_complete': True}
         
         serializer = UpdateSubmissionSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn('answers', serializer.errors)
+        self.assertTrue(serializer.is_valid())  # Should be valid without answers
     
     def test_optional_is_complete(self):
         """Test that is_complete field is optional with default"""
@@ -452,6 +451,6 @@ class SerializerIntegrationTests(TestCase):
         
         question_data = page_data['questions'][0]
         self.assertEqual(question_data['name'], "Question 1")
-        self.assertEqual(question_data['type']['name'], "Text")
+        self.assertEqual(question_data['type'], "text")  # FormQuestionSerializer returns type as slug string
         self.assertEqual(question_data['config']['placeholder'], 'Enter text')
         self.assertTrue(question_data['validation']['required'])
