@@ -127,47 +127,11 @@
       </div>
       
       <!-- Options Management -->
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-2">Options</label>
-        <div class="space-y-2 max-h-40 overflow-y-auto">
-          <div 
-            v-for="(option, index) in dropdownOptions" 
-            :key="index"
-            class="flex items-center space-x-2"
-          >
-            <input
-              v-model="option.value"
-              @blur="emitUpdate"
-              placeholder="value"
-              class="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <input
-              v-model="option.label"
-              @blur="emitUpdate"
-              placeholder="Display label"
-              class="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              @click="removeOption(index)"
-              class="p-1 text-red-400 hover:text-red-600 rounded"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <button
-          @click="addOption"
-          class="mt-2 inline-flex items-center px-2 py-1 border border-dashed border-gray-300 rounded text-xs text-gray-600 hover:border-gray-400 hover:text-gray-800"
-        >
-          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-          </svg>
-          Add Option
-        </button>
-      </div>
+      <OptionsEditor
+        v-model="config.options"
+        :has-validation="true"
+        @update:model-value="emitUpdate"
+      />
     </div>
 
     <!-- Yes/No Configuration -->
@@ -186,27 +150,11 @@
       </div>
       
       <!-- Custom Labels -->
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-2">Custom Labels</label>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <input
-              v-model="yesNoLabels.yes"
-              @blur="updateYesNoLabels"
-              placeholder="Yes"
-              class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <input
-              v-model="yesNoLabels.no"
-              @blur="updateYesNoLabels"
-              placeholder="No"
-              class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      </div>
+      <OptionsEditor
+        v-model="config.options"
+        :has-validation="true"
+        @update:model-value="emitUpdate"
+      />
     </div>
 
     <!-- Address Configuration -->
@@ -273,6 +221,100 @@
           <span class="ml-2 text-xs text-gray-700">Enable address validation/geocoding</span>
         </label>
       </div>
+      
+      <!-- Country Options Management -->
+      <div>
+        <div class="mb-2">
+          <label class="block text-xs font-medium text-gray-700 mb-1">Country Options</label>
+          <p class="text-xs text-gray-500">Customize the available countries in the dropdown</p>
+        </div>
+        <OptionsEditor
+          v-model="config.country_options"
+          :has-validation="false"
+          @update:model-value="emitUpdate"
+        />
+      </div>
+    </div>
+
+    <!-- Radio Button Configuration -->
+    <div v-else-if="questionType.slug === 'radio' || questionType.slug === 'radio-group'" class="space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Layout</label>
+        <select
+          v-model="config.layout"
+          @change="emitUpdate"
+          class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="vertical">Vertical</option>
+          <option value="horizontal">Horizontal</option>
+        </select>
+      </div>
+      
+      <!-- Options Management -->
+      <OptionsEditor
+        v-model="config.options"
+        :has-validation="true"
+        @update:model-value="emitUpdate"
+      />
+    </div>
+
+    <!-- Checkbox Configuration -->
+    <div v-else-if="questionType.slug === 'checkbox' || questionType.slug === 'checkbox-group'" class="space-y-3">
+      <div>
+        <label class="flex items-center">
+          <input
+            v-model="config.allow_other"
+            @change="emitUpdate"
+            type="checkbox"
+            class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+          />
+          <span class="ml-2 text-xs text-gray-700">Allow "Other" option with text input</span>
+        </label>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Layout</label>
+        <select
+          v-model="config.layout"
+          @change="emitUpdate"
+          class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="vertical">Vertical</option>
+          <option value="horizontal">Horizontal</option>
+          <option value="grid">Grid (2 columns)</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Minimum Selections</label>
+        <input
+          v-model.number="config.min_selections"
+          @blur="emitUpdate"
+          type="number"
+          min="0"
+          class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="0 (no minimum)"
+        />
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Maximum Selections</label>
+        <input
+          v-model.number="config.max_selections"
+          @blur="emitUpdate"
+          type="number"
+          min="1"
+          class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="No limit"
+        />
+      </div>
+      
+      <!-- Options Management -->
+      <OptionsEditor
+        v-model="config.options"
+        :has-validation="true"
+        @update:model-value="emitUpdate"
+      />
     </div>
 
     <!-- Default/Fallback Configuration -->
@@ -298,6 +340,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import OptionsEditor from './OptionsEditor.vue'
 
 // Props
 const props = defineProps({
@@ -318,20 +361,6 @@ const emit = defineEmits(['update-config'])
 const config = ref({ ...props.question.config })
 
 // Computed properties for specific configurations
-const dropdownOptions = computed({
-  get() {
-    return config.value.options || [{ value: '', label: '' }]
-  },
-  set(value) {
-    config.value.options = value
-    emitUpdate()
-  }
-})
-
-const yesNoLabels = ref({
-  yes: config.value.labels?.yes || 'Yes',
-  no: config.value.labels?.no || 'No'
-})
 
 const addressFields = ref({
   street: { required: config.value.fields?.street?.required || false },
@@ -351,29 +380,7 @@ const emitUpdate = () => {
   emit('update-config', config.value)
 }
 
-// Dropdown options management
-const addOption = () => {
-  const options = [...dropdownOptions.value]
-  options.push({ value: '', label: '' })
-  dropdownOptions.value = options
-}
-
-const removeOption = (index) => {
-  if (dropdownOptions.value.length > 1) {
-    const options = [...dropdownOptions.value]
-    options.splice(index, 1)
-    dropdownOptions.value = options
-  }
-}
-
-// Yes/No labels update
-const updateYesNoLabels = () => {
-  config.value.labels = {
-    yes: yesNoLabels.value.yes,
-    no: yesNoLabels.value.no
-  }
-  emitUpdate()
-}
+// Options management is now handled by OptionsEditor component
 
 // Address fields update
 const updateAddressFields = () => {

@@ -1213,6 +1213,7 @@ export default {
       }
     }
 
+
     const initializeQuestionData = (question, initialData) => {
       if (isComplexQuestionType(question)) {
         // For complex types like address, initialize flat fields and create nested view
@@ -1551,3 +1552,6 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+</style>

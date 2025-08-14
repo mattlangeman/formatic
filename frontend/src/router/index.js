@@ -6,6 +6,7 @@ import SubmissionsView from '../views/SubmissionsView.vue'
 import FormTableEditorView from '../views/FormTableEditorView.vue'
 import FormBuilderView from '../views/FormBuilderView.vue'
 import NewFormView from '../views/NewFormView.vue'
+import OptionsEditorDemo from '../components/OptionsEditorDemo.vue'
 
 const routes = [
   {
@@ -101,6 +102,14 @@ const routes = [
     component: FormBuilderView,
     meta: {
       title: 'Form Builder - Formatic'
+    }
+  },
+  {
+    path: '/demo/options-editor',
+    name: 'options-editor-demo',
+    component: OptionsEditorDemo,
+    meta: {
+      title: 'Options Editor Demo - Formatic'
     }
   },
   {

@@ -1299,6 +1299,7 @@ export default {
   display: none;
 }
 
+
 /* Address input styling for table */
 :deep(.address-input) {
   @apply space-y-2;
