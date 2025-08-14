@@ -788,7 +788,7 @@ export default {
     const isSingleLineInput = (question) => {
       const formKitType = getFormKitType(question)
       // Single-line inputs that should be center-aligned
-      const singleLineTypes = ['text', 'email', 'number', 'tel', 'url', 'password', 'date', 'time', 'datetime-local', 'month', 'week']
+      const singleLineTypes = ['text', 'email', 'number', 'tel', 'url', 'password', 'date', 'time', 'datetime-local', 'month', 'week', 'select', 'radio']
       return singleLineTypes.includes(formKitType)
     }
 
