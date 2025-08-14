@@ -79,8 +79,46 @@
       </div>
     </div>
 
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Loading submissions...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="text-center py-12">
+      <div class="text-red-600 mb-4">
+        <svg class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.96-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+      </div>
+      <p class="text-red-600 font-medium">{{ error }}</p>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="filteredSubmissions.length === 0 && !loading" class="text-center py-12 bg-white rounded-lg shadow">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <h3 class="mt-4 text-lg font-medium text-gray-900">No submissions yet</h3>
+      <p class="mt-2 text-sm text-gray-500">
+        {{ searchQuery || statusFilter !== 'all' ? 'No submissions match your filters.' : 'This form has not received any submissions yet.' }}
+      </p>
+      <div class="mt-6">
+        <router-link
+          :to="`/form/${formSlug}/fill`"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Fill out form
+        </router-link>
+      </div>
+    </div>
+
     <!-- Table -->
-    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+    <div v-else class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-300">
           <thead class="bg-gray-50">
@@ -186,19 +224,13 @@
                 </div>
               </td>
             </tr>
-            
-            <tr v-if="filteredSubmissions.length === 0">
-              <td :colspan="displayColumns.length + 1" class="px-3 py-8 text-center text-sm text-gray-500">
-                {{ submissions.length === 0 ? 'No submissions found' : 'No submissions match your filters' }}
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
+    <div v-if="totalPages > 1 && filteredSubmissions.length > 0" class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
       <div class="flex flex-1 justify-between sm:hidden">
         <button
           @click="previousPage"
@@ -348,7 +380,7 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { submissionApi, formApi } from '../services/api'
+import { submissionApi, formBuilderApi } from '../services/api'
 
 export default {
   name: 'SubmissionsTable',
@@ -644,7 +676,7 @@ export default {
         // Load both submissions and form structure
         const [submissionsResponse, formResponse] = await Promise.all([
           submissionApi.getSubmissionsByForm(props.formSlug),
-          formApi.getForm(props.formSlug)
+          formBuilderApi.getBuilderForm(props.formSlug)
         ])
         
         // Sort submissions by modified_datetime (most recent first)

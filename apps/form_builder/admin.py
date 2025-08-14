@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import DynamicForm, Page, QuestionType, Question, FormVersion, FormSubmission
+from .models import DynamicForm, Page, QuestionType, Question, FormVersion, FormSubmission, QuestionGroup, QuestionGroupTemplate
 
 
 class FormVersionInline(admin.TabularInline):
@@ -47,23 +47,109 @@ class QuestionInline(admin.TabularInline):
     extra = 0
     fields = ['name', 'type', 'text', 'required', 'order']
     readonly_fields = ['id']
+    verbose_name = "Direct Question (not in a group)"
+    verbose_name_plural = "Direct Questions (not in groups)"
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Only show questions directly on the page (not in groups)
+        return qs.filter(question_group__isnull=True)
+
+
+class QuestionGroupInline(admin.StackedInline):
+    model = QuestionGroup
+    extra = 0
+    fields = ['name', 'slug', 'display_type', 'order', 'config']
+    readonly_fields = ['id']
 
 
 @admin.register(Page)
 class PageAdmin(admin.ModelAdmin):
-    list_display = ['name', 'form', 'order', 'slug', 'created_datetime']
+    list_display = ['name', 'form', 'order', 'slug', 'question_count', 'group_count', 'created_datetime']
     list_filter = ['form', 'created_datetime']
     search_fields = ['name', 'form__name']
     readonly_fields = ['id', 'created_datetime', 'modified_datetime']
-    inlines = [QuestionInline]
+    inlines = [QuestionGroupInline, QuestionInline]
+    
+    def question_count(self, obj):
+        return obj.questions.filter(question_group__isnull=True).count()
+    question_count.short_description = 'Direct Questions'
+    
+    def group_count(self, obj):
+        return obj.question_groups.count()
+    group_count.short_description = 'Question Groups'
+
+
+class GroupedQuestionInline(admin.TabularInline):
+    model = Question
+    extra = 1
+    fields = ['name', 'slug', 'type', 'text', 'required', 'order']
+    readonly_fields = ['id']
+    verbose_name = "Question in Group"
+    verbose_name_plural = "Questions in Group"
+
+
+@admin.register(QuestionGroup)
+class QuestionGroupAdmin(admin.ModelAdmin):
+    list_display = ['name', 'page', 'display_type', 'template_name', 'order', 'question_count', 'created_datetime']
+    list_filter = ['display_type', 'template', 'page__form', 'created_datetime']
+    search_fields = ['name', 'slug', 'page__name', 'page__form__name', 'template__name']
+    readonly_fields = ['id', 'created_datetime', 'modified_datetime']
+    fieldsets = (
+        (None, {
+            'fields': ('page', 'template', 'name', 'slug', 'display_type', 'order')
+        }),
+        ('Configuration', {
+            'fields': ('config',),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('id', 'created_datetime', 'modified_datetime'),
+            'classes': ('collapse',)
+        }),
+    )
+    inlines = [GroupedQuestionInline]
+    
+    def question_count(self, obj):
+        return obj.questions.count()
+    question_count.short_description = 'Questions'
+    
+    def template_name(self, obj):
+        return obj.template.name if obj.template else 'Custom'
+    template_name.short_description = 'Template'
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'page', 'type', 'required', 'order']
-    list_filter = ['type', 'required', 'page__form']
-    search_fields = ['name', 'text', 'page__name']
+    list_display = ['name', 'get_parent', 'type', 'required', 'order', 'slug']
+    list_filter = ['type', 'required', 'page__form', 'question_group__page__form']
+    search_fields = ['name', 'text', 'slug', 'page__name', 'question_group__name']
     readonly_fields = ['id', 'created_datetime', 'modified_datetime']
+    fieldsets = (
+        ('Location', {
+            'fields': ('page', 'question_group'),
+            'description': 'A question must belong to either a page directly OR a question group (not both)'
+        }),
+        ('Basic Information', {
+            'fields': ('type', 'name', 'slug', 'text', 'subtext', 'required', 'order')
+        }),
+        ('Configuration', {
+            'fields': ('config', 'validation', 'conditional_logic'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('id', 'created_datetime', 'modified_datetime'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_parent(self, obj):
+        if obj.page:
+            return f"Page: {obj.page.name}"
+        elif obj.question_group:
+            return f"Group: {obj.question_group.name}"
+        return "None"
+    get_parent.short_description = 'Parent'
 
 
 @admin.register(FormVersion)
@@ -126,3 +212,35 @@ class FormSubmissionAdmin(admin.ModelAdmin):
         except:
             return str(obj.answers)
     answers_display.short_description = 'User Answers'
+
+
+@admin.register(QuestionGroupTemplate)
+class QuestionGroupTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'display_type', 'is_active', 'usage_count', 'created_datetime']
+    list_filter = ['display_type', 'is_active', 'created_datetime']
+    search_fields = ['name', 'slug', 'description']
+    readonly_fields = ['id', 'created_datetime', 'modified_datetime', 'usage_count']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'slug', 'description', 'display_type', 'is_active')
+        }),
+        ('Template Configuration', {
+            'fields': ('config', 'question_template'),
+            'classes': ('collapse',)
+        }),
+        ('Usage & Metadata', {
+            'fields': ('usage_count', 'id', 'created_datetime', 'modified_datetime'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def usage_count(self, obj):
+        return obj.instances.count()
+    usage_count.short_description = 'Groups Created'
+    
+    def save_model(self, request, obj, form, change):
+        # Auto-generate slug if not provided
+        if not obj.slug and obj.name:
+            from django.utils.text import slugify
+            obj.slug = slugify(obj.name)
+        super().save_model(request, obj, form, change)

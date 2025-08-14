@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_serializer, extend_schema_field, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
-from apps.form_builder.models import DynamicForm, FormVersion, FormSubmission, Page, Question, QuestionType
+from apps.form_builder.models import DynamicForm, FormVersion, FormSubmission, Page, Question, QuestionType, QuestionGroup, QuestionGroupTemplate
 from .schemas import (
     QUESTION_CONFIG_SCHEMA, VALIDATION_CONFIG_SCHEMA, CONDITIONAL_LOGIC_SCHEMA,
     PAGE_CONFIG_SCHEMA, SERIALIZED_FORM_DATA_SCHEMA, SUBMISSION_ANSWERS_SCHEMA
@@ -133,9 +133,26 @@ class FormQuestionSerializer(serializers.ModelSerializer):
         ]
 
 
+class QuestionGroupSerializer(serializers.ModelSerializer):
+    """Serializer for question groups with their nested questions."""
+    questions = FormQuestionSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = QuestionGroup
+        fields = [
+            'id', 'name', 'slug', 'display_type', 'config', 'order', 'questions'
+        ]
+
+
 class FormPageSerializer(serializers.ModelSerializer):
     """Lightweight serializer for pages in form contexts - uses minimal question data."""
-    questions = FormQuestionSerializer(many=True, read_only=True)
+    questions = serializers.SerializerMethodField()
+    question_groups = QuestionGroupSerializer(many=True, read_only=True)
+    
+    def get_questions(self, obj):
+        # Only get questions directly on page (not in groups)
+        questions = obj.questions.filter(question_group__isnull=True).order_by('order')
+        return FormQuestionSerializer(questions, many=True).data
     
     @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
     def get_conditional_logic(self, obj):
@@ -149,7 +166,7 @@ class FormPageSerializer(serializers.ModelSerializer):
         model = Page
         fields = [
             'id', 'name', 'slug', 'order', 'conditional_logic', 
-            'config', 'questions'
+            'config', 'questions', 'question_groups'
         ]
 
 
@@ -185,7 +202,13 @@ class FormPageSerializer(serializers.ModelSerializer):
 )
 class PageSerializer(serializers.ModelSerializer):
     """Serializer for form pages with their questions."""
-    questions = QuestionSerializer(many=True, read_only=True)
+    questions = serializers.SerializerMethodField()
+    question_groups = QuestionGroupSerializer(many=True, read_only=True)
+    
+    def get_questions(self, obj):
+        # Only get questions directly on page (not in groups)
+        questions = obj.questions.filter(question_group__isnull=True).order_by('order')
+        return QuestionSerializer(questions, many=True).data
     
     @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
     def get_conditional_logic(self, obj):
@@ -199,7 +222,7 @@ class PageSerializer(serializers.ModelSerializer):
         model = Page
         fields = [
             'id', 'name', 'slug', 'order', 'conditional_logic', 
-            'config', 'questions'
+            'config', 'questions', 'question_groups'
         ]
 
 
@@ -390,3 +413,139 @@ class CreateSubmissionSerializer(serializers.Serializer):
 class UpdateSubmissionSerializer(serializers.Serializer):
     answers = serializers.JSONField(required=False)
     is_complete = serializers.BooleanField(default=False, required=False)
+
+
+# Form Builder Serializers
+
+class CreatePageSerializer(serializers.ModelSerializer):
+    """Serializer for creating new pages."""
+    
+    class Meta:
+        model = Page
+        fields = ['name', 'slug', 'conditional_logic', 'config']
+        
+
+class UpdatePageSerializer(serializers.ModelSerializer):
+    """Serializer for updating existing pages."""
+    
+    class Meta:
+        model = Page
+        fields = ['name', 'slug', 'conditional_logic', 'config']
+
+
+class CreateQuestionSerializer(serializers.ModelSerializer):
+    """Serializer for creating new questions."""
+    type_slug = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = Question
+        fields = [
+            'name', 'slug', 'text', 'subtext', 'required', 
+            'config', 'validation', 'conditional_logic', 'type_slug'
+        ]
+    
+    def create(self, validated_data):
+        # Remove type_slug from validated_data since it's not a model field
+        validated_data.pop('type_slug', None)
+        return super().create(validated_data)
+
+
+class UpdateQuestionSerializer(serializers.ModelSerializer):
+    """Serializer for updating existing questions."""
+    
+    class Meta:
+        model = Question
+        fields = [
+            'name', 'slug', 'text', 'subtext', 'required', 
+            'config', 'validation', 'conditional_logic'
+        ]
+
+
+class CreateFormSerializer(serializers.ModelSerializer):
+    """Serializer for creating new forms."""
+    skip_default_page = serializers.BooleanField(default=False, write_only=True)
+    
+    class Meta:
+        model = DynamicForm
+        fields = ['name', 'slug', 'skip_default_page']
+
+
+class CreateQuestionGroupSerializer(serializers.ModelSerializer):
+    """Serializer for creating new question groups."""
+    
+    class Meta:
+        model = QuestionGroup
+        fields = ['name', 'slug', 'display_type', 'config']
+
+
+class UpdateQuestionGroupSerializer(serializers.ModelSerializer):
+    """Serializer for updating question groups."""
+    
+    class Meta:
+        model = QuestionGroup
+        fields = ['name', 'slug', 'display_type', 'config']
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'Address Template',
+            summary='Address group template with street, city, country, state, postal code',
+            value={
+                "id": "dd3cd14a-7e3b-420a-9e47-874dd6170331",
+                "name": "Address",
+                "slug": "address",
+                "description": "Complete address information including street, city, state/province, and postal code",
+                "display_type": "address",
+                "config": {
+                    "layout": "stacked",
+                    "show_labels": True,
+                    "validation": {
+                        "required_fields": ["street", "city", "country"]
+                    }
+                },
+                "question_template": [
+                    {
+                        "type_slug": "short-text",
+                        "name": "Street Address",
+                        "slug_suffix": "street",
+                        "text": "Street Address",
+                        "required": True,
+                        "config": {"placeholder": "123 Main Street"}
+                    },
+                    {
+                        "type_slug": "short-text",
+                        "name": "City",
+                        "slug_suffix": "city", 
+                        "text": "City",
+                        "required": True
+                    },
+                    {
+                        "type_slug": "dropdown",
+                        "name": "Country",
+                        "slug_suffix": "country",
+                        "text": "Country",
+                        "required": True,
+                        "config": {
+                            "options": [
+                                {"value": "US", "label": "United States"},
+                                {"value": "CA", "label": "Canada"}
+                            ]
+                        }
+                    }
+                ]
+            }
+        )
+    ]
+)
+class QuestionGroupTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for question group templates."""
+    
+    class Meta:
+        model = QuestionGroupTemplate
+        fields = [
+            'id', 'name', 'slug', 'description', 'display_type', 
+            'config', 'question_template', 'is_active',
+            'created_datetime', 'modified_datetime'
+        ]
+        read_only_fields = ['id', 'created_datetime', 'modified_datetime']

@@ -33,7 +33,7 @@
 <script>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { formApi } from '../services/api'
+import { formBuilderApi } from '../services/api'
 import SubmissionsTable from '../components/SubmissionsTable.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 
@@ -56,7 +56,7 @@ export default {
         error.value = null
         
         // Get form info to display name
-        const response = await formApi.getForm(formSlug.value)
+        const response = await formBuilderApi.getBuilderForm(formSlug.value)
         formName.value = response.data.name
         
       } catch (err) {
@@ -68,7 +68,7 @@ export default {
     }
 
     const breadcrumbItems = computed(() => [
-      { label: 'Forms', to: '/' },
+      { label: 'All Forms', to: '/' },
       { label: formName.value || 'Form', to: `/form/${formSlug.value}` },
       { label: 'Submissions', to: null } // Current page, no link
     ])

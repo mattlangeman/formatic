@@ -32,18 +32,20 @@ export default {
     
     const breadcrumbItems = computed(() => {
       const items = [
-        { label: 'Forms', to: '/' }
+        { label: 'All Forms', to: '/' }
       ]
       
       if (formName.value) {
         if (submissionId.value) {
-          // Form submission path: Forms > [Form Name] > Submissions > [Submission ID]
+          // Form submission path: All Forms > [Form Name] > Submissions > [Submission ID] > Form View
           items.push({ label: formName.value, to: `/form/${route.params.slug}` })
           items.push({ label: 'Submissions', to: `/form/${route.params.slug}/submissions` })
-          items.push({ label: `Submission ${submissionId.value.substring(0, 8)}...`, to: null })
+          items.push({ label: `Submission ${submissionId.value.substring(0, 8)}...`, to: `/form/${route.params.slug}/submission/${submissionId.value}/table` })
+          items.push({ label: 'Form View', to: null })
         } else {
-          // Regular form path: Forms > [Form Name]
-          items.push({ label: formName.value, to: null })
+          // Regular form path: All Forms > [Form Name] > Fill Form
+          items.push({ label: formName.value, to: `/form/${route.params.slug}` })
+          items.push({ label: 'Fill Form', to: null })
         }
       }
       

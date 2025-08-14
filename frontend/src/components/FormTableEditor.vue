@@ -115,15 +115,33 @@
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <tbody class="bg-white divide-y divide-gray-200">
-                <template v-for="question in page.questions" :key="question.id">
+                <template v-for="question in getAllQuestionsFromPage(page)" :key="question.id">
                   <!-- Address Question - Split into multiple rows -->
                   <template v-if="isAddressField(question)">
                     <!-- Main Address Question Row -->
                     <tr class="hover:bg-gray-50">
                       <td class="px-6 py-2 whitespace-normal text-sm text-gray-900 align-top border-r border-gray-100 w-1/3">
-                        <div class="space-y-1">
+                        <div class="flex items-center relative">
                           <div class="font-medium" v-html="getFormattedLabel(question)"></div>
-                          <div v-if="question.subtext" class="text-gray-500 text-xs">{{ question.subtext }}</div>
+                          <div v-if="question.subtext" class="relative ml-1">
+                            <svg 
+                              @click="toggleTooltip(`address-${question.id}`)"
+                              @mouseenter="showTooltip(`address-${question.id}`)"
+                              @mouseleave="hideTooltip(`address-${question.id}`)"
+                              class="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                            </svg>
+                            <div 
+                              v-if="activeTooltip === `address-${question.id}`"
+                              class="absolute left-0 top-6 z-50 w-64 p-3 text-xs text-white bg-gray-900 rounded-lg shadow-lg"
+                            >
+                              {{ question.subtext }}
+                              <div class="absolute -top-1 left-2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td class="px-6 py-2 text-xs text-gray-500 italic w-2/3">
@@ -181,23 +199,24 @@
                       </td>
                     </tr>
 
-                    <!-- State/Province Row -->
-                    <tr class="hover:bg-gray-50">
+                    <!-- State/Province Row with Conditional Logic -->
+                    <tr v-if="getStateFieldVisibilityWrapper(question)" class="hover:bg-gray-50">
                       <td class="px-6 py-2 pl-12 text-sm text-gray-600 border-r border-gray-100">
                         <div class="flex items-center">
                           <span class="text-gray-400 mr-2">└</span>
                           State/Province
-                          <span v-if="question.required" class="text-red-400 ml-1">*</span>
+                          <span v-if="getStateFieldRequiredWrapper(question)" class="text-red-400 ml-1">*</span>
                         </div>
                       </td>
                       <td class="px-6 py-2">
                         <FormKit
-                          type="text"
+                          :type="getStateFieldTypeWrapper(question)"
                           :name="`${question.slug}__state`"
                           :model-value="formData[`${question.slug}__state`]"
                           @update:model-value="(value) => updateField(`${question.slug}__state`, value)"
-                          :validation="question.required ? 'required' : undefined"
-                          placeholder="Enter state or province"
+                          :validation="getStateFieldRequiredWrapper(question) ? 'required' : undefined"
+                          :placeholder="getStateFieldPlaceholderWrapper(question)"
+                          :options="getStateFieldOptionsWrapper(question)"
                           :disabled="isComplete"
                           outer-class="form-table-field"
                           wrapper-class="form-table-wrapper"
@@ -262,9 +281,27 @@
                   <tr v-else class="hover:bg-gray-50" :key="`regular-${question.id}`">
                     <!-- Question Column -->
                     <td class="px-6 py-2 whitespace-normal text-sm text-gray-900 border-r border-gray-100 w-1/3" :class="isSingleLineInput(question) ? 'align-middle' : 'align-top'">
-                      <div class="space-y-1">
+                      <div class="flex items-center relative">
                         <div class="font-medium" v-html="getFormattedLabel(question)"></div>
-                        <div v-if="question.subtext" class="text-gray-500 text-xs">{{ question.subtext }}</div>
+                        <div v-if="question.subtext" class="relative ml-1">
+                          <svg 
+                            @click="toggleTooltip(`regular-${question.id}`)"
+                            @mouseenter="showTooltip(`regular-${question.id}`)"
+                            @mouseleave="hideTooltip(`regular-${question.id}`)"
+                            class="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                          </svg>
+                          <div 
+                            v-if="activeTooltip === `regular-${question.id}`"
+                            class="absolute left-0 top-6 z-50 w-64 p-3 text-xs text-white bg-gray-900 rounded-lg shadow-lg"
+                          >
+                            {{ question.subtext }}
+                            <div class="absolute -top-1 left-2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                          </div>
+                        </div>
                       </div>
                     </td>
 
@@ -362,14 +399,26 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { formApi, submissionApi, questionTypesApi } from '../services/api'
+import { useConditionalLogic } from '../composables/useConditionalLogic.js'
+import { useAddressField } from '../composables/useAddressField.js'
 
 export default {
   name: 'FormTableEditor',
   setup(props, { emit }) {
     const route = useRoute()
+    
+    // Use shared composables
+    const { getVisibleQuestions, evaluateConditionalLogic, getQuestionOptions: getConditionalQuestionOptions } = useConditionalLogic()
+    const {
+      getStateFieldVisibility,
+      getStateFieldRequired,
+      getStateFieldType,
+      getStateFieldOptions,
+      getStateFieldPlaceholder
+    } = useAddressField()
     
     // State
     const form = ref(null)
@@ -382,6 +431,7 @@ export default {
     const originalFormData = ref({})
     const isComplete = ref(false)
     const completedDateTime = ref(null)
+    const activeTooltip = ref(null)
 
     // Computed properties
     const isFormReady = computed(() => {
@@ -394,35 +444,115 @@ export default {
       
       let allFilled = true
       
-      form.value.pages.forEach(page => {
-        page.questions.forEach(question => {
-          if (!question.required) return // Skip non-required fields
-          
-          if (isAddressField(question)) {
-            // For address fields, check all required sub-fields
-            const addressFields = ['street', 'city', 'state', 'postal_code', 'country']
-            for (const field of addressFields) {
-              const value = formData.value[`${question.slug}__${field}`]
-              if (value === undefined || value === null || value === '' || 
-                  (typeof value === 'string' && value.trim() === '')) {
-                console.log(`❌ Required address field missing: ${question.slug}__${field}`)
-                allFilled = false
-              }
-            }
-          } else {
-            // Regular field
-            const value = formData.value[question.slug]
+      const checkQuestion = (question) => {
+        if (!question.required) return // Skip non-required fields
+        
+        if (isAddressField(question)) {
+          // For address fields, check all required sub-fields
+          const addressFields = ['street', 'city', 'state', 'postal_code', 'country']
+          for (const field of addressFields) {
+            const value = formData.value[`${question.slug}__${field}`]
             if (value === undefined || value === null || value === '' || 
-                (Array.isArray(value) && value.length === 0) ||
                 (typeof value === 'string' && value.trim() === '')) {
-              console.log(`❌ Required field missing: ${question.slug}`)
+              console.log(`❌ Required address field missing: ${question.slug}__${field}`)
               allFilled = false
             }
           }
-        })
+        } else {
+          // Regular field
+          const value = formData.value[question.slug]
+          if (value === undefined || value === null || value === '' || 
+              (Array.isArray(value) && value.length === 0) ||
+              (typeof value === 'string' && value.trim() === '')) {
+            console.log(`❌ Required field missing: ${question.slug}`)
+            allFilled = false
+          }
+        }
+      }
+      
+      form.value.pages.forEach(page => {
+        // Check individual questions
+        if (page.questions) {
+          page.questions.forEach(checkQuestion)
+        }
+        
+        // Check questions from question groups
+        if (page.question_groups) {
+          page.question_groups.forEach(group => {
+            if (group.questions) {
+              group.questions.forEach(checkQuestion)
+            }
+          })
+        }
       })
       
       return allFilled
+    })
+
+    // Helper function to get all questions from a page (including group questions)
+    const getAllQuestionsFromPage = (page) => {
+      return getVisibleQuestions(page, formData.value)
+    }
+    
+    // State field conditional logic helpers (using shared composable) - made reactive
+    const getStateFieldVisibilityWrapper = computed(() => {
+      return (addressQuestion) => {
+        const transformedData = {
+          address_country: formData.value['address_country']
+        }
+        const result = getStateFieldVisibility(form.value, transformedData)
+        console.log('🔍 State field visibility:', result)
+        return result
+      }
+    })
+    
+    const getStateFieldRequiredWrapper = computed(() => {
+      return (addressQuestion) => {
+        const transformedData = {
+          address_country: formData.value['address_country']
+        }
+        const result = getStateFieldRequired(form.value, transformedData)
+        console.log('🔍 State field required:', result)
+        return result
+      }
+    })
+    
+    const getStateFieldTypeWrapper = computed(() => {
+      return (addressQuestion) => {
+        const transformedData = {
+          address_country: formData.value['address_country']
+        }
+        const result = getStateFieldType(form.value, transformedData)
+        console.log('🔍 State field type:', result)
+        return result
+      }
+    })
+    
+    const getStateFieldOptionsWrapper = computed(() => {
+      return (addressQuestion) => {
+        // In this form structure, address fields are individual questions with slugs like 'address_country'
+        // The actual country value is stored directly as 'address_country', not flattened
+        const transformedData = {
+          address_country: formData.value['address_country']
+        }
+        
+        const result = getStateFieldOptions(form.value, transformedData)
+        console.log('🔍 State field options:', result?.length || 0, 'options found')
+        console.log('🔍 Country value:', transformedData.address_country)
+        console.log('🔍 All formData keys:', Object.keys(formData.value))
+        return result
+      }
+    })
+    
+    const getStateFieldPlaceholderWrapper = computed(() => {
+      return (addressQuestion) => {
+        const transformedData = {
+          address_country: formData.value['address_country']
+        }
+        const result = getStateFieldPlaceholder(form.value, transformedData)
+        console.log('🔍 State field placeholder:', result)
+        return result
+      }
     })
 
     // Utility functions (copied from DynamicForm.vue)
@@ -561,6 +691,13 @@ export default {
     }
 
     const getQuestionOptions = (question) => {
+      // First check if conditional logic provides dynamic options
+      const conditionalLogic = evaluateConditionalLogic(question, formData.value)
+      if (conditionalLogic.options) {
+        console.log(`🎯 Using conditional logic options for ${question.slug}:`, conditionalLogic.options)
+        return conditionalLogic.options
+      }
+      
       // Get the question type from our loaded types
       const questionType = questionTypes.value[question.type]
       
@@ -841,29 +978,43 @@ export default {
         console.log('📥 Loading existing answers:', existingAnswers)
         console.log('📥 Answer keys:', Object.keys(existingAnswers))
         
+        const processQuestion = (question) => {
+          console.log(`📝 Processing question: ${question.slug} (type: ${question.type})`)
+          
+          // Check if this is an address field using the proper function
+          if (isAddressField(question)) {
+            console.log(`🏠 Initializing address field: ${question.slug}`)
+            const addressFields = ['street', 'city', 'state', 'postal_code', 'country']
+            addressFields.forEach(field => {
+              const flatKey = `${question.slug}__${field}`
+              const value = existingAnswers[flatKey]
+              initialData[flatKey] = value !== undefined ? value : ''
+              console.log(`  ${flatKey}: "${initialData[flatKey]}" (found: ${value !== undefined})`)
+            })
+          } else {
+            // Regular field initialization
+            const value = existingAnswers[question.slug]
+            initialData[question.slug] = value !== undefined ? value : (
+              question.config?.multiple ? [] : ''
+            )
+            console.log(`  ${question.slug}: ${JSON.stringify(initialData[question.slug])} (found: ${value !== undefined})`)
+          }
+        }
+        
         formStructure.pages.forEach(page => {
-          page.questions.forEach(question => {
-            console.log(`📝 Processing question: ${question.slug} (type: ${question.type})`)
-            
-            // Check if this is an address field using the proper function
-            if (isAddressField(question)) {
-              console.log(`🏠 Initializing address field: ${question.slug}`)
-              const addressFields = ['street', 'city', 'state', 'postal_code', 'country']
-              addressFields.forEach(field => {
-                const flatKey = `${question.slug}__${field}`
-                const value = existingAnswers[flatKey]
-                initialData[flatKey] = value !== undefined ? value : ''
-                console.log(`  ${flatKey}: "${initialData[flatKey]}" (found: ${value !== undefined})`)
-              })
-            } else {
-              // Regular field initialization
-              const value = existingAnswers[question.slug]
-              initialData[question.slug] = value !== undefined ? value : (
-                question.config?.multiple ? [] : ''
-              )
-              console.log(`  ${question.slug}: ${JSON.stringify(initialData[question.slug])} (found: ${value !== undefined})`)
-            }
-          })
+          // Process individual questions
+          if (page.questions) {
+            page.questions.forEach(processQuestion)
+          }
+          
+          // Process questions from question groups
+          if (page.question_groups) {
+            page.question_groups.forEach(group => {
+              if (group.questions) {
+                group.questions.forEach(processQuestion)
+              }
+            })
+          }
         })
         
         formData.value = initialData
@@ -942,15 +1093,51 @@ export default {
       }
     })
 
+    // Tooltip methods
+    const showTooltip = (tooltipId) => {
+      activeTooltip.value = tooltipId
+    }
+
+    const hideTooltip = (tooltipId) => {
+      if (activeTooltip.value === tooltipId) {
+        activeTooltip.value = null
+      }
+    }
+
+    const toggleTooltip = (tooltipId) => {
+      if (activeTooltip.value === tooltipId) {
+        activeTooltip.value = null
+      } else {
+        activeTooltip.value = tooltipId
+      }
+    }
+
+    // Close tooltip when clicking outside
+    const handleClickOutside = (event) => {
+      if (activeTooltip.value && !event.target.closest('.relative')) {
+        activeTooltip.value = null
+      }
+    }
+
+    onMounted(() => {
+      document.addEventListener('click', handleClickOutside)
+    })
+
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside)
+    })
+
     return {
       // State
       form,
       formData,
+      questionTypes,
       loading,
       error,
       saving,
       isComplete,
       completedDateTime,
+      activeTooltip,
       
       // Computed
       isFormReady,
@@ -969,9 +1156,18 @@ export default {
       getCountryOptions,
       updateField,
       getFormViewUrl,
+      getAllQuestionsFromPage,
+      getStateFieldVisibilityWrapper,
+      getStateFieldRequiredWrapper,
+      getStateFieldTypeWrapper,
+      getStateFieldOptionsWrapper,
+      getStateFieldPlaceholderWrapper,
       saveForm,
       resetForm,
-      completeForm
+      completeForm,
+      showTooltip,
+      hideTooltip,
+      toggleTooltip
     }
   }
 }

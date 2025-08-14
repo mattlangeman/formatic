@@ -111,7 +111,7 @@
                   :validation="getValidationRules(question)"
                   :options="getQuestionOptions(question)"
                   :multiple="question.config?.multiple"
-                  :required="question.required"
+                  :required="getQuestionRequired(question)"
                   :disabled="isComplete"
                   :label="false"
                 />
@@ -231,6 +231,8 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { formApi, submissionApi, questionTypesApi } from '../services/api'
 import AddressInput from './AddressInput.vue'
+import { useConditionalLogic } from '../composables/useConditionalLogic.js'
+import { useAddressField } from '../composables/useAddressField.js'
 
 // Debounce utility function
 const debounce = (fn, delay) => {
@@ -346,9 +348,11 @@ export default {
       if (!form.value?.pages?.[pageIndex]) return false
 
       const page = form.value.pages[pageIndex]
+      const allQuestions = visibleQuestions(page)
 
-      for (const question of page.questions) {
-        if (question.required) {
+      for (const question of allQuestions) {
+        const logic = evaluateConditionalLogic(question, formData.value)
+        if (logic.required) {
           if (isComplexQuestionType(question)) {
             // For complex fields like address, check all required sub-fields
             const complexFieldNames = getComplexFieldNames(question)
@@ -438,8 +442,9 @@ export default {
       const currentFormData = formData.value
 
       console.log('🔍 Validating current page:', currentPage.value)
-
-      for (const question of currentPageData.value.questions) {
+      
+      const allQuestions = visibleQuestions(currentPageData.value)
+      for (const question of allQuestions) {
         if (question.required) {
           if (isComplexQuestionType(question)) {
             // For complex fields like address, check if ALL required sub-fields have values
@@ -523,21 +528,9 @@ export default {
         console.log('🔍 Current route params:', route.params)
         console.log('🔍 Looking for submissionId:', route.params.submissionId)
 
-        // Load question types and form in parallel
-        await Promise.all([
-          loadQuestionTypes(),
-          (async () => {
-            const response = await formApi.getForm(props.formSlug)
-            form.value = response.data
-            console.log('📋 Form structure loaded, pages:', form.value.pages.length)
-            // Emit form loaded event for parent components
-            emit('form-loaded', form.value)
-          })()
-        ])
-
         let existingSubmission = null
 
-        // Check if we're loading a specific submission from URL
+        // First, check if we're loading a specific submission from URL
         if (route.params.submissionId) {
           console.log('📥 Loading specific submission from URL:', route.params.submissionId)
           try {
@@ -550,47 +543,48 @@ export default {
             loading.value = false
             return
           }
-        } else {
-          // Generate or get existing session ID for new form starts
-          const sessionKey = `formSession_${props.formSlug}`
-          let sessionId = localStorage.getItem(sessionKey)
+        }
 
-          console.log('🔑 Session ID:', sessionId)
-
-          // Try to find existing submission if we have a session
-          if (sessionId) {
-            try {
-              const submissions = await submissionApi.getSubmissionsBySession(sessionId)
-              if (submissions.data && submissions.data.length > 0) {
-                // Use the most recent incomplete submission
-                existingSubmission = submissions.data.find(s => !s.is_complete) || submissions.data[0]
-                console.log('📄 Found existing submission:', existingSubmission.id)
-              }
-            } catch (err) {
-              console.log('No existing submission found, will create new one')
+        // Load question types and form in parallel
+        // If we have a submission, use its specific form version; otherwise use latest published
+        await Promise.all([
+          loadQuestionTypes(),
+          (async () => {
+            let response
+            if (existingSubmission && existingSubmission.form_version_number) {
+              console.log('📋 Loading form version', existingSubmission.form_version_number, 'for submission')
+              response = await formApi.getFormVersion(props.formSlug, existingSubmission.form_version_number)
+            } else {
+              console.log('📋 Loading latest published form version')
+              response = await formApi.getForm(props.formSlug)
             }
-          }
+            form.value = response.data
+            console.log('📋 Form structure loaded, pages:', form.value.pages?.length || 'N/A')
+            // Emit form loaded event for parent components
+            emit('form-loaded', form.value)
+          })()
+        ])
 
-          if (!existingSubmission) {
-            // Generate new session ID if we don't have one
-            if (!sessionId) {
-              sessionId = generateSessionId()
-              localStorage.setItem(sessionKey, sessionId)
-              console.log('🆕 Generated new session ID:', sessionId)
-            }
+        // If no existing submission from URL, create a new one and redirect
+        if (!existingSubmission) {
+          console.log('🆕 No submission ID in URL, creating new submission')
+          
+          // Create new submission
+          const submissionResponse = await submissionApi.createSubmission({
+            form_slug: props.formSlug
+          })
+          existingSubmission = submissionResponse.data
+          console.log('✅ Created new submission:', existingSubmission.id)
 
-            // Create new submission
-            const submissionResponse = await submissionApi.createSubmission({
-              form_slug: props.formSlug,
-              user_session_id: sessionId
-            })
-            existingSubmission = submissionResponse.data
-            console.log('✅ Created new submission:', existingSubmission.id)
-
-            // Update URL to reflect the new submission without triggering a route change
-            // We'll do this after the form is fully initialized
-            console.log('🔄 Will update URL to submission-specific URL after initialization')
-          }
+          // Immediately redirect to URL with submission ID
+          const currentPageSlug = route.params.pageSlug
+          const redirectRoute = currentPageSlug 
+            ? { name: 'form-page', params: { slug: props.formSlug, submissionId: existingSubmission.id, pageSlug: currentPageSlug }}
+            : { name: 'form-submission', params: { slug: props.formSlug, submissionId: existingSubmission.id }}
+          
+          console.log('🔄 Redirecting to submission-specific URL:', redirectRoute)
+          router.replace(redirectRoute)
+          return
         }
 
         submissionId.value = existingSubmission.id
@@ -618,36 +612,23 @@ export default {
         }
 
         form.value.pages.forEach(page => {
-          page.questions.forEach(question => {
-            if (isComplexQuestionType(question)) {
-              // For complex types like address, initialize flat fields and create nested view
-              const complexFieldNames = getComplexFieldNames(question)
-              complexFieldNames.forEach(fieldName => {
-                const flatKey = `${question.slug}__${fieldName}`
-                if (!(flatKey in initialData)) {
-                  initialData[flatKey] = ''
-                }
-              })
-
-              // Create nested object for form display
-              const complexValue = unflattenComplexValue(question.slug, initialData)
-              initialData[question.slug] = complexValue || {
-                street: '',
-                city: '',
-                state: '',
-                postal_code: '',
-                country: ''
+          // Process individual questions
+          if (page.questions) {
+            page.questions.forEach(question => {
+              initializeQuestionData(question, initialData)
+            })
+          }
+          
+          // Process questions from question groups
+          if (page.question_groups) {
+            page.question_groups.forEach(group => {
+              if (group.questions) {
+                group.questions.forEach(question => {
+                  initializeQuestionData(question, initialData)
+                })
               }
-
-              console.log(`🏠 Initialized complex field ${question.slug}:`, initialData[question.slug])
-            } else {
-              // Simple field handling
-              if (!(question.slug in initialData)) {
-                const defaultValue = question.config?.default_value || ''
-                initialData[question.slug] = defaultValue
-              }
-            }
-          })
+            })
+          }
         })
 
         // Set the form data - FormKit will handle the binding
@@ -763,12 +744,12 @@ export default {
         })
 
         console.log('🚀 Final submission flat data:', flatData)
-        await submissionApi.submitForm(submissionId.value, flatData)
+        const response = await submissionApi.submitForm(submissionId.value, flatData)
+        
+        // Update local state to reflect completion
+        isComplete.value = true
+        completedDateTime.value = response.data.completed_datetime
         submitted.value = true
-
-        // Clear the localStorage session so user can start fresh next time
-        const sessionKey = `formSession_${props.formSlug}`
-        localStorage.removeItem(sessionKey)
         
         // Navigate to submissions list after successful submission
         router.push({ 
@@ -821,24 +802,83 @@ export default {
     // Watch for form data changes and auto-save
     watch(
       () => formData.value,
-      (newData) => {
+      (newData, oldData) => {
         if (submissionId.value && newData && !isComplete.value) {
           debouncedSave(newData)
           // Recalculate page completion when form data changes
           if (!isInitializing.value) {
             console.log('🔄 Form data changed, recalculating page completion...')
             recalculatePageCompletion()
+            
+            // Handle conditional logic value clearing
+            handleConditionalLogicValueClearing(newData, oldData)
           }
         }
       },
       { deep: true }
     )
+    
+    // Handle clearing values based on conditional logic
+    const handleConditionalLogicValueClearing = (newData, oldData) => {
+      if (!form.value?.pages || isInitializing.value) return
+      
+      const updatedFormData = { ...newData }
+      let hasChanges = false
+      
+      form.value.pages.forEach(page => {
+        // Check individual questions
+        if (page.questions) {
+          page.questions.forEach(question => {
+            const logic = evaluateConditionalLogic(question, newData)
+            if (!logic.visible && newData[question.slug] !== undefined && newData[question.slug] !== '') {
+              console.log(`🧽 Clearing field ${question.slug} due to conditional logic`)
+              updatedFormData[question.slug] = ''
+              hasChanges = true
+            }
+          })
+        }
+        
+        // Check questions in groups
+        if (page.question_groups) {
+          page.question_groups.forEach(group => {
+            if (group.questions) {
+              group.questions.forEach(question => {
+                const logic = evaluateConditionalLogic(question, newData)
+                if (!logic.visible && newData[question.slug] !== undefined && newData[question.slug] !== '') {
+                  console.log(`🧽 Clearing field ${question.slug} due to conditional logic`)
+                  updatedFormData[question.slug] = ''
+                  hasChanges = true
+                }
+                
+                // Also check flat field values for complex fields
+                if (isComplexQuestionType(question) && !logic.visible) {
+                  const complexFieldNames = getComplexFieldNames(question)
+                  complexFieldNames.forEach(fieldName => {
+                    const flatKey = `${question.slug}__${fieldName}`
+                    if (newData[flatKey] !== undefined && newData[flatKey] !== '') {
+                      console.log(`🧽 Clearing complex field ${flatKey} due to conditional logic`)
+                      updatedFormData[flatKey] = ''
+                      hasChanges = true
+                    }
+                  })
+                }
+              })
+            }
+          })
+        }
+      })
+      
+      if (hasChanges) {
+        formData.value = updatedFormData
+      }
+    }
 
     const validateCurrentPage = () => {
       if (!currentPageData.value) return []
       const errors = []
-
-      for (const question of currentPageData.value.questions) {
+      
+      const allQuestions = visibleQuestions(currentPageData.value)
+      for (const question of allQuestions) {
         if (question.required) {
           if (isComplexQuestionType(question)) {
             // For complex fields like address, check all required sub-fields
@@ -892,10 +932,29 @@ export default {
     }
 
     const visibleQuestions = (page) => {
-      return page.questions.filter(() => {
-        // TODO: Implement conditional logic evaluation
-        return true
-      })
+      const questions = []
+      
+      // Add individual questions
+      if (page.questions) {
+        questions.push(...page.questions.filter(question => {
+          const logic = evaluateConditionalLogic(question, formData.value)
+          return logic.visible
+        }))
+      }
+      
+      // Add questions from question groups
+      if (page.question_groups) {
+        page.question_groups.forEach(group => {
+          if (group.questions) {
+            questions.push(...group.questions.filter(question => {
+              const logic = evaluateConditionalLogic(question, formData.value)
+              return logic.visible
+            }))
+          }
+        })
+      }
+      
+      return questions
     }
 
     const getTableViewUrl = () => {
@@ -972,8 +1031,10 @@ export default {
 
     const getValidationRules = (question) => {
       const rules = []
-
-      if (question.required) {
+      
+      // Check conditional logic for dynamic required state
+      const conditionalLogic = evaluateConditionalLogic(question, formData.value)
+      if (conditionalLogic.required) {
         rules.push('required')
       }
 
@@ -990,6 +1051,11 @@ export default {
       }
 
       return rules.join('|')
+    }
+    
+    const getQuestionRequired = (question) => {
+      const conditionalLogic = evaluateConditionalLogic(question, formData.value)
+      return conditionalLogic.required
     }
 
     const getQuestionPlaceholder = (question) => {
@@ -1025,6 +1091,13 @@ export default {
     }
 
     const getQuestionOptions = (question) => {
+      // First check if conditional logic provides dynamic options
+      const conditionalLogic = evaluateConditionalLogic(question, formData.value)
+      if (conditionalLogic.options) {
+        console.log(`🎯 Using conditional logic options for ${question.slug}:`, conditionalLogic.options)
+        return conditionalLogic.options
+      }
+      
       // Get the question type from our loaded types
       const questionType = questionTypes.value[question.type]
 
@@ -1132,11 +1205,58 @@ export default {
       }
     }
 
+    const initializeQuestionData = (question, initialData) => {
+      if (isComplexQuestionType(question)) {
+        // For complex types like address, initialize flat fields and create nested view
+        const complexFieldNames = getComplexFieldNames(question)
+        complexFieldNames.forEach(fieldName => {
+          const flatKey = `${question.slug}__${fieldName}`
+          if (!(flatKey in initialData)) {
+            initialData[flatKey] = ''
+          }
+        })
+
+        // Create nested object for form display
+        const complexValue = unflattenComplexValue(question.slug, initialData)
+        initialData[question.slug] = complexValue || {
+          street: '',
+          city: '',
+          state: '',
+          postal_code: '',
+          country: ''
+        }
+
+        console.log(`🏠 Initialized complex field ${question.slug}:`, initialData[question.slug])
+      } else {
+        // Simple field handling
+        if (!(question.slug in initialData)) {
+          const defaultValue = question.config?.default_value || ''
+          initialData[question.slug] = defaultValue
+        }
+      }
+    }
+
     const findQuestionBySlug = (slug) => {
       for (const page of form.value?.pages || []) {
-        for (const question of page.questions) {
-          if (question.slug === slug) {
-            return question
+        // Check individual questions
+        if (page.questions) {
+          for (const question of page.questions) {
+            if (question.slug === slug) {
+              return question
+            }
+          }
+        }
+        
+        // Check questions in groups
+        if (page.question_groups) {
+          for (const group of page.question_groups) {
+            if (group.questions) {
+              for (const question of group.questions) {
+                if (question.slug === slug) {
+                  return question
+                }
+              }
+            }
           }
         }
       }
@@ -1181,8 +1301,108 @@ export default {
       return Object.keys(complexValue).length > 0 ? complexValue : null
     }
 
-    const generateSessionId = () => {
-      return 'sess_' + Math.random().toString(36).slice(2, 11) + Date.now().toString(36)
+    // Conditional Logic Evaluation System
+    const evaluateCondition = (condition, formData) => {
+      const { question_slug, operator, value } = condition
+      const fieldValue = formData[question_slug]
+      
+      switch (operator) {
+        case 'equals':
+          return fieldValue === value
+        case 'not_equals':
+          return fieldValue !== value
+        case 'contains':
+          return fieldValue && fieldValue.toString().includes(value)
+        case 'not_contains':
+          return !fieldValue || !fieldValue.toString().includes(value)
+        case 'is_empty':
+          return !fieldValue || fieldValue === ''
+        case 'is_not_empty':
+          return fieldValue && fieldValue !== ''
+        default:
+          console.warn(`Unknown condition operator: ${operator}`)
+          return false
+      }
+    }
+    
+    const evaluateRule = (rule, formData) => {
+      const { conditions, logical_operator } = rule
+      
+      if (!conditions || conditions.length === 0) {
+        return true
+      }
+      
+      const results = conditions.map(condition => evaluateCondition(condition, formData))
+      
+      if (logical_operator === 'OR') {
+        return results.some(result => result)
+      } else {
+        // Default to AND
+        return results.every(result => result)
+      }
+    }
+    
+    const evaluateConditionalLogic = (question, formData) => {
+      if (!question.conditional_logic || !question.conditional_logic.rules) {
+        return {
+          visible: true,
+          required: question.required || false,
+          options: null
+        }
+      }
+      
+      const { rules, default_action } = question.conditional_logic
+      
+      // Find the first matching rule
+      for (const rule of rules) {
+        if (evaluateRule(rule, formData)) {
+          // Apply the actions from the matching rule
+          let visible = true
+          let required = question.required || false
+          let options = null
+          
+          for (const action of rule.actions) {
+            switch (action.type) {
+              case 'show':
+                visible = true
+                break
+              case 'hide':
+                visible = false
+                break
+              case 'require':
+                required = true
+                break
+              case 'unrequire':
+                required = false
+                break
+              case 'set_options':
+                options = action.options?.en || action.options
+                break
+              case 'clear_value':
+                // This should be handled by the caller
+                break
+            }
+          }
+          
+          return { visible, required, options }
+        }
+      }
+      
+      // No rules matched, apply default action
+      if (default_action === 'hide') {
+        return {
+          visible: false,
+          required: false,
+          options: null
+        }
+      }
+      
+      // Default: show the question as configured
+      return {
+        visible: true,
+        required: question.required || false,
+        options: null
+      }
     }
 
     const startNewSubmission = () => {
@@ -1193,10 +1413,7 @@ export default {
       currentPage.value = 0
       completedPages.value = new Set()
 
-      // Clear session and reload form
-      const sessionKey = `formSession_${props.formSlug}`
-      localStorage.removeItem(sessionKey)
-
+      // Reload form (will create new submission and redirect to new URL)
       loadForm()
     }
 

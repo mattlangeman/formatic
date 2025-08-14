@@ -32,3 +32,11 @@ db.sqlite3-journal
 # OS
 .DS_Store
 Thumbs.db
+
+# Vue Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/e2e/screenshots/
+frontend/e2e/videos/
+frontend/e2e/reports/
+frontend/e2e/downloads/

@@ -77,9 +77,14 @@ export const formApi = {
     return api.get('/forms/')
   },
 
-  // Get published form structure
+  // Get published form structure from latest published version
   getForm(slug) {
     return api.get(`/forms/${slug}/`)
+  },
+
+  // Get specific form version by version number
+  getFormVersion(slug, versionNumber) {
+    return api.get(`/forms/${slug}/versions/${versionNumber}/`)
   },
 
   // Get draft form structure (admin only)
@@ -89,7 +94,12 @@ export const formApi = {
 
   // Create new form version
   createVersion(slug, data) {
-    return api.post(`/forms/${slug}/versions/`, data)
+    return api.post(`/forms/${slug}/create-version/`, data)
+  },
+
+  // Get all versions of a form
+  getFormVersions(slug) {
+    return api.get(`/forms/${slug}/versions/`)
   }
 }
 
@@ -126,6 +136,11 @@ export const submissionApi = {
       answers,
       is_complete: true
     })
+  },
+
+  // Get submission statistics for a form
+  getSubmissionStats(formSlug) {
+    return api.get(`/submissions/stats/?form_slug=${formSlug}`)
   }
 }
 
@@ -139,6 +154,135 @@ export const questionTypesApi = {
   // Get specific question type by slug
   getQuestionType(slug) {
     return api.get(`/question-types/${slug}/`)
+  }
+}
+
+// Question Group Templates API methods
+export const questionGroupTemplatesApi = {
+  // Get all active question group templates
+  getTemplates() {
+    return api.get('/question-group-templates/')
+  },
+
+  // Get specific template by slug
+  getTemplate(slug) {
+    return api.get(`/question-group-templates/${slug}/`)
+  }
+}
+
+// Form Builder API methods
+export const formBuilderApi = {
+  // Form management
+  createForm(data) {
+    return api.post('/builder/forms/', data)
+  },
+
+  getBuilderForm(slug) {
+    return api.get(`/builder/forms/${slug}/`)
+  },
+
+  updateForm(slug, data) {
+    return api.patch(`/builder/forms/${slug}/`, data)
+  },
+
+  deleteForm(slug) {
+    return api.delete(`/builder/forms/${slug}/`)
+  },
+
+  duplicateForm(slug) {
+    return api.post(`/builder/forms/${slug}/duplicate/`)
+  },
+
+  // Page management
+  getPages(formSlug) {
+    return api.get(`/builder/forms/${formSlug}/pages/`)
+  },
+
+  createPage(formSlug, data) {
+    return api.post(`/builder/forms/${formSlug}/pages/`, data)
+  },
+
+  updatePage(formSlug, pageId, data) {
+    return api.patch(`/builder/forms/${formSlug}/pages/${pageId}/`, data)
+  },
+
+  deletePage(formSlug, pageId) {
+    return api.delete(`/builder/forms/${formSlug}/pages/${pageId}/`)
+  },
+
+  reorderPages(formSlug, pageOrders) {
+    return api.post(`/builder/forms/${formSlug}/pages/reorder/`, {
+      page_orders: pageOrders
+    })
+  },
+
+  // Question management
+  getQuestions(formSlug, pageId) {
+    return api.get(`/builder/forms/${formSlug}/pages/${pageId}/questions/`)
+  },
+
+  createQuestion(formSlug, pageId, data) {
+    return api.post(`/builder/forms/${formSlug}/pages/${pageId}/questions/`, data)
+  },
+
+  updateQuestion(formSlug, pageId, questionId, data) {
+    return api.patch(`/builder/forms/${formSlug}/pages/${pageId}/questions/${questionId}/`, data)
+  },
+
+  deleteQuestion(formSlug, pageId, questionId) {
+    return api.delete(`/builder/forms/${formSlug}/pages/${pageId}/questions/${questionId}/`)
+  },
+
+  reorderQuestions(formSlug, pageId, questionOrders) {
+    return api.post(`/builder/forms/${formSlug}/pages/${pageId}/questions/reorder/`, {
+      question_orders: questionOrders
+    })
+  },
+
+  // Question Group management
+  getQuestionGroups(formSlug, pageId) {
+    return api.get(`/builder/forms/${formSlug}/pages/${pageId}/groups/`)
+  },
+
+  createQuestionGroup(formSlug, pageId, data) {
+    return api.post(`/builder/forms/${formSlug}/pages/${pageId}/groups/`, data)
+  },
+
+  updateQuestionGroup(formSlug, pageId, groupId, data) {
+    return api.patch(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/`, data)
+  },
+
+  deleteQuestionGroup(formSlug, pageId, groupId) {
+    return api.delete(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/`)
+  },
+
+  reorderQuestionGroups(formSlug, pageId, groupOrders) {
+    return api.post(`/builder/forms/${formSlug}/pages/${pageId}/groups/reorder/`, {
+      group_orders: groupOrders
+    })
+  },
+
+  // Questions in Groups management
+  addQuestionToGroup(formSlug, pageId, groupId, data) {
+    return api.post(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/questions/`, data)
+  },
+
+  getGroupedQuestions(formSlug, pageId, groupId) {
+    return api.get(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/questions/`)
+  },
+
+  updateGroupedQuestion(formSlug, pageId, groupId, questionId, data) {
+    return api.patch(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/questions/${questionId}/`, data)
+  },
+
+  deleteGroupedQuestion(formSlug, pageId, groupId, questionId) {
+    return api.delete(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/questions/${questionId}/`)
+  },
+
+  reorderGroupedQuestions(formSlug, pageId, groupId, questionOrders) {
+    return api.post(`/builder/forms/${formSlug}/pages/${pageId}/groups/${groupId}/questions/reorder/`, {
+      question_orders: questionOrders
+    })
   }
 }
 
