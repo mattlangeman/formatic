@@ -51,9 +51,19 @@
         <div v-for="page in visiblePages" :key="page.id" class="mb-8">
           <!-- Multi-page forms: show page name with switch link -->
           <div v-if="form.pages.length > 1" class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-900">
-              {{ page.name }}
-            </h2>
+            <div class="flex items-center space-x-3">
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ page.name }}
+              </h2>
+              <TagPill
+                :text="page.tag_text"
+                :hover-text="page.tag_hover_text"
+                :display-condition="page.tag_display_condition"
+                :form-data="formData"
+                variant="primary"
+                size="sm"
+              />
+            </div>
             <router-link
               :to="getTableViewUrl()"
               class="text-sm text-primary-600 hover:text-primary-800 transition-colors inline-flex items-center"
@@ -65,8 +75,16 @@
             </router-link>
           </div>
 
-          <!-- Single-page forms: just show switch link aligned right -->
-          <div v-else class="flex justify-end mb-4">
+          <!-- Single-page forms: show tag and switch link -->
+          <div v-else class="flex justify-between items-center mb-4">
+            <TagPill
+              :text="page.tag_text"
+              :hover-text="page.tag_hover_text"
+              :display-condition="page.tag_display_condition"
+              :form-data="formData"
+              variant="primary"
+              size="sm"
+            />
             <router-link
               :to="getTableViewUrl()"
               class="text-sm text-primary-600 hover:text-primary-800 transition-colors inline-flex items-center"
@@ -93,6 +111,23 @@
                   :form-data="formData"
                   :update-field="updateField"
                   :parent-required="question.required"
+                />
+              </div>
+
+              <!-- Special handling for disabled select fields -->
+              <div v-else-if="isDisabledSelect(question, page)">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <span v-html="getFormattedLabel(question)"></span>
+                </label>
+                <p v-if="question.subtext" class="text-sm text-gray-600 mb-3">{{ question.subtext }}</p>
+                <DisabledSelectView
+                  :form-kit-type="getFormKitType(question)"
+                  :name="question.slug"
+                  :model-value="formData[question.slug]"
+                  :options="getQuestionOptions(question)"
+                  :multiple="question.config?.multiple"
+                  :required="getQuestionRequired(question)"
+                  :placeholder="getQuestionPlaceholder(question)"
                 />
               </div>
 
@@ -231,6 +266,8 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { formApi, submissionApi, questionTypesApi } from '../services/api'
 import AddressInput from './AddressInput.vue'
+import DisabledSelectView from './DisabledSelectView.vue'
+import TagPill from './TagPill.vue'
 import { useConditionalLogic } from '../composables/useConditionalLogic.js'
 import { useAddressField } from '../composables/useAddressField.js'
 
@@ -246,7 +283,9 @@ const debounce = (fn, delay) => {
 export default {
   name: 'DynamicForm',
   components: {
-    AddressInput
+    AddressInput,
+    DisabledSelectView,
+    TagPill
   },
   props: {
     formSlug: {
@@ -272,6 +311,9 @@ export default {
     const completedDateTime = ref(null)
     const isUpdatingUrl = ref(false)
     const isLoadingForm = ref(false)
+
+    // Use conditional logic composable
+    const { isQuestionDisabled } = useConditionalLogic()
 
     const visiblePages = computed(() => {
       if (!form.value) return []
@@ -1176,6 +1218,13 @@ export default {
       return formKitType === 'radio' || formKitType === 'checkbox'
     }
 
+    const isDisabledSelect = (question, page) => {
+      const formKitType = getFormKitType(question)
+      const isSelectType = formKitType === 'select'
+      const isDisabled = isQuestionDisabled(question, page, formData.value) || isComplete.value
+      return isSelectType && isDisabled
+    }
+
     const updateField = (fieldName, value) => {
       console.log(`🔄 Updating ${fieldName}:`, value)
 
@@ -1545,6 +1594,7 @@ export default {
       getQuestionTypeConfig,
       getFormattedLabel,
       isRadioOrCheckbox,
+      isDisabledSelect,
       updateField,
       getTableViewUrl,
       startNewSubmission

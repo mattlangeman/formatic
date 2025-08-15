@@ -51,23 +51,101 @@
       
       <!-- Page Settings Panel (collapsible) -->
       <div v-if="showPageSettings" class="mt-4 pt-4 border-t border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Page Slug</label>
-            <input
-              v-model="editablePage.slug"
-              @blur="updatePage"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        <div class="space-y-4">
+          <!-- Basic Settings Row -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Page Slug</label>
+              <input
+                v-model="editablePage.slug"
+                @blur="updatePage"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Page Order</label>
+              <input
+                v-model.number="editablePage.order"
+                @blur="updatePage"
+                type="number"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Page Order</label>
-            <input
-              v-model.number="editablePage.order"
-              @blur="updatePage"
-              type="number"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+
+          <!-- Tag Settings Section -->
+          <div class="border-t border-gray-200 pt-4">
+            <h4 class="text-sm font-medium text-gray-900 mb-3 flex items-center">
+              <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Tag Settings
+            </h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tag Text</label>
+                <input
+                  v-model="editablePage.tag_text"
+                  @blur="updatePage"
+                  placeholder="e.g., Premium, Beta, New"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p class="text-xs text-gray-500 mt-1">Text displayed in the tag/pill</p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tag Hover Text</label>
+                <textarea
+                  v-model="editablePage.tag_hover_text"
+                  @blur="updatePage"
+                  placeholder="e.g., Upgrading to premium allows for additional analysis"
+                  rows="2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-1">Text shown when hovering over the tag</p>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tag Display Condition</label>
+              <div class="bg-gray-50 rounded-md p-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Field</label>
+                    <input
+                      v-model="tagConditionField"
+                      @blur="updateTagCondition"
+                      placeholder="e.g., tool_mode"
+                      class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Operator</label>
+                    <select 
+                      v-model="tagConditionOperator"
+                      @change="updateTagCondition"
+                      class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="equals">equals</option>
+                      <option value="not_equals">not equals</option>
+                      <option value="in">in list</option>
+                      <option value="not_in">not in list</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Value</label>
+                    <input
+                      v-model="tagConditionValue"
+                      @blur="updateTagCondition"
+                      placeholder="e.g., free"
+                      class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Tag will be displayed when this condition is met</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -172,6 +250,11 @@ const editablePage = ref({ ...props.page })
 const showPageSettings = ref(false)
 const isDragOver = ref(false)
 
+// Tag condition reactive data
+const tagConditionField = ref('')
+const tagConditionOperator = ref('equals')
+const tagConditionValue = ref('')
+
 // Computed properties
 const totalItemsCount = computed(() => {
   return (props.page.questions?.length || 0) + (props.page.question_groups?.length || 0)
@@ -214,7 +297,26 @@ const sortedPageItems = computed(() => {
 // Watch for prop changes
 watch(() => props.page, (newPage) => {
   editablePage.value = { ...newPage }
+  initializeTagCondition()
 }, { deep: true })
+
+// Initialize tag condition fields from page data
+const initializeTagCondition = () => {
+  const condition = props.page.tag_display_condition || {}
+  
+  if (condition.field && condition.operator && condition.value !== undefined) {
+    tagConditionField.value = condition.field
+    tagConditionOperator.value = condition.operator
+    tagConditionValue.value = condition.value
+  } else {
+    tagConditionField.value = ''
+    tagConditionOperator.value = 'equals'
+    tagConditionValue.value = ''
+  }
+}
+
+// Initialize on component mount
+initializeTagCondition()
 
 // Update page
 const updatePage = async () => {
@@ -225,14 +327,32 @@ const updatePage = async () => {
       {
         name: editablePage.value.name,
         slug: editablePage.value.slug,
+        tag_text: editablePage.value.tag_text || '',
+        tag_hover_text: editablePage.value.tag_hover_text || '',
+        tag_display_condition: editablePage.value.tag_display_condition || {},
         config: editablePage.value.config || {},
-        conditional_logic: editablePage.value.conditional_logic || {}
+        conditional_logic: editablePage.value.conditional_logic || {},
+        disabled_condition: editablePage.value.disabled_condition || {}
       }
     )
     emit('page-updated', response.data)
   } catch (error) {
     console.error('Failed to update page:', error)
   }
+}
+
+// Update tag condition based on UI inputs
+const updateTagCondition = () => {
+  if (tagConditionField.value && tagConditionValue.value) {
+    editablePage.value.tag_display_condition = {
+      field: tagConditionField.value,
+      operator: tagConditionOperator.value,
+      value: tagConditionValue.value
+    }
+  } else {
+    editablePage.value.tag_display_condition = {}
+  }
+  updatePage()
 }
 
 // Delete page

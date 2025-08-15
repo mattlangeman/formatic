@@ -174,6 +174,10 @@ class FormPageSerializer(serializers.ModelSerializer):
     @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
     def get_disabled_condition(self, obj):
         return obj.disabled_condition
+    
+    @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
+    def get_tag_display_condition(self, obj):
+        return obj.tag_display_condition
         
     @extend_schema_field(PAGE_CONFIG_SCHEMA)
     def get_config(self, obj):
@@ -189,6 +193,7 @@ class FormPageSerializer(serializers.ModelSerializer):
         model = Page
         fields = [
             'id', 'name', 'slug', 'order', 'conditional_logic', 'disabled_condition',
+            'tag_text', 'tag_hover_text', 'tag_display_condition',
             'config', 'questions', 'question_groups', 'is_disabled'
         ]
 
@@ -236,6 +241,10 @@ class PageSerializer(serializers.ModelSerializer):
     @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
     def get_conditional_logic(self, obj):
         return obj.conditional_logic
+    
+    @extend_schema_field(CONDITIONAL_LOGIC_SCHEMA)
+    def get_tag_display_condition(self, obj):
+        return obj.tag_display_condition
         
     @extend_schema_field(PAGE_CONFIG_SCHEMA)
     def get_config(self, obj):
@@ -245,6 +254,7 @@ class PageSerializer(serializers.ModelSerializer):
         model = Page
         fields = [
             'id', 'name', 'slug', 'order', 'conditional_logic', 
+            'tag_text', 'tag_hover_text', 'tag_display_condition',
             'config', 'questions', 'question_groups'
         ]
 
@@ -446,7 +456,7 @@ class CreatePageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Page
-        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'config']
+        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'tag_text', 'tag_hover_text', 'tag_display_condition', 'config']
         
 
 class UpdatePageSerializer(serializers.ModelSerializer):
@@ -454,7 +464,7 @@ class UpdatePageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Page
-        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'config']
+        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'tag_text', 'tag_hover_text', 'tag_display_condition', 'config']
 
 
 class CreateQuestionSerializer(serializers.ModelSerializer):

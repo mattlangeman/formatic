@@ -43,6 +43,9 @@ class DynamicForm(models.Model):
                 'order': page.order,
                 'conditional_logic': page.conditional_logic,
                 'disabled_condition': page.disabled_condition,
+                'tag_text': page.tag_text,
+                'tag_hover_text': page.tag_hover_text,
+                'tag_display_condition': page.tag_display_condition,
                 'config': page.config,
                 'questions': [],
                 'question_groups': []
@@ -150,6 +153,20 @@ class Page(models.Model):
         default=dict, 
         blank=True,
         help_text="Condition that determines if this page should be disabled"
+    )
+    tag_text = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Text to display in the tag/pill (e.g., 'Premium')"
+    )
+    tag_hover_text = models.TextField(
+        blank=True,
+        help_text="Text to show when hovering over the tag (e.g., 'Upgrading to premium allows for additional analysis')"
+    )
+    tag_display_condition = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Condition that determines when the tag should be displayed"
     )
     config = models.JSONField(default=dict, blank=True)
     created_datetime = models.DateTimeField(default=timezone.now)

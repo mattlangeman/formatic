@@ -107,7 +107,17 @@
         >
           <!-- Page Title Header -->
           <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">{{ page.name }}</h2>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-semibold text-gray-900">{{ page.name }}</h2>
+              <TagPill 
+                :text="page.tag_text"
+                :hover-text="page.tag_hover_text"
+                :display-condition="page.tag_display_condition"
+                :form-data="formData"
+                variant="warning"
+                size="sm"
+              />
+            </div>
             <p v-if="page.description" class="text-sm text-gray-600 mt-1">{{ page.description }}</p>
           </div>
 
@@ -308,7 +318,22 @@
                     <!-- Answer Column -->
                     <td class="px-6 py-2 text-sm text-gray-900 w-2/3" :class="isSingleLineInput(question) ? 'align-middle' : 'align-top'">
                       <div :class="isRadioOrCheckbox(question) ? 'radio-checkbox-field' : 'max-w-lg'">
+                        <!-- Special handling for disabled select fields -->
+                        <DisabledSelectView 
+                          v-if="isDisabledSelect(question, page)"
+                          :form-kit-type="getFormKitType(question)"
+                          :name="question.slug"
+                          :model-value="formData[question.slug]"
+                          :options="getQuestionOptions(question)"
+                          :multiple="question.config?.multiple"
+                          :required="question.required"
+                          :placeholder="getQuestionPlaceholder(question)"
+                          field-classes="form-table-field form-table-wrapper form-table-input"
+                        />
+                        
+                        <!-- Regular FormKit field for all other cases -->
                         <FormKit
+                          v-else
                           :type="getFormKitType(question)"
                           :name="question.slug"
                           :model-value="formData[question.slug]"
@@ -404,9 +429,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { formApi, submissionApi, questionTypesApi } from '../services/api'
 import { useConditionalLogic } from '../composables/useConditionalLogic.js'
 import { useAddressField } from '../composables/useAddressField.js'
+import DisabledSelectView from './DisabledSelectView.vue'
+import TagPill from './TagPill.vue'
 
 export default {
   name: 'FormTableEditor',
+  components: {
+    DisabledSelectView,
+    TagPill
+  },
   setup(props, { emit }) {
     const route = useRoute()
     
@@ -783,6 +814,13 @@ export default {
     const isRadioOrCheckbox = (question) => {
       const formKitType = getFormKitType(question)
       return formKitType === 'radio' || formKitType === 'checkbox'
+    }
+
+    const isDisabledSelect = (question, page) => {
+      const formKitType = getFormKitType(question)
+      const isSelectType = formKitType === 'select'
+      const isDisabled = isFieldDisabled(question, page)
+      return isSelectType && isDisabled
     }
 
     const isSingleLineInput = (question) => {
@@ -1197,6 +1235,7 @@ export default {
       getFormattedLabel,
       isAddressField,
       isRadioOrCheckbox,
+      isDisabledSelect,
       isSingleLineInput,
       getCountryOptions,
       updateField,
