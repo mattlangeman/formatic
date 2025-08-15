@@ -138,71 +138,20 @@
     >
       <!-- Questions List -->
       <div v-if="group.questions && group.questions.length > 0" class="space-y-3">
-        <div
+        <QuestionBuilder
           v-for="(question, index) in group.questions"
           :key="question.id"
-          class="grouped-question bg-gray-50 border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors"
-        >
-          <div class="flex items-start justify-between">
-            <div class="flex items-start space-x-2 flex-1">
-              <!-- Question drag handle -->
-              <div class="question-drag-handle cursor-move p-1 text-gray-400 hover:text-gray-600">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
-                </svg>
-              </div>
-              
-              <!-- Question type badge -->
-              <div class="question-type-badge bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium">
-                {{ getQuestionTypeName(question.type) }}
-              </div>
-              
-              <!-- Question content -->
-              <div class="flex-1 min-w-0">
-                <input
-                  v-model="question.name"
-                  @blur="updateGroupedQuestion(question)"
-                  @keyup.enter="updateGroupedQuestion(question)"
-                  placeholder="Question name"
-                  class="w-full text-sm font-medium text-gray-900 bg-transparent border-none p-0 focus:ring-1 focus:ring-blue-500 rounded"
-                />
-                <input
-                  v-model="question.text"
-                  @blur="updateGroupedQuestion(question)"
-                  @keyup.enter="updateGroupedQuestion(question)"
-                  placeholder="Question text"
-                  class="w-full text-xs text-gray-600 bg-transparent border-none p-0 focus:ring-1 focus:ring-blue-500 rounded mt-1"
-                />
-              </div>
-            </div>
-            
-            <!-- Question actions -->
-            <div class="flex items-center space-x-1 ml-2">
-              <button
-                @click="toggleQuestionRequired(question)"
-                :class="[
-                  'text-xs px-2 py-1 rounded',
-                  question.required 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                ]"
-                title="Toggle required"
-              >
-                {{ question.required ? 'Req' : 'Opt' }}
-              </button>
-              
-              <button
-                @click="deleteGroupedQuestion(question)"
-                class="p-1 text-red-400 hover:text-red-600 rounded hover:bg-red-50"
-                title="Delete question"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
+          :question="question"
+          :question-types="questionTypes"
+          :page-id="pageId"
+          :form-slug="formSlug"
+          :is-grouped="true"
+          :group-id="group.id"
+          @question-updated="handleQuestionUpdate"
+          @question-deleted="handleQuestionDelete"
+          @question-added="handleQuestionAdd"
+          @question-reorder="handleQuestionReorder"
+        />
       </div>
       
       <!-- Empty state for group -->
@@ -220,6 +169,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { formBuilderApi } from '../services/api.js'
+import QuestionBuilder from './QuestionBuilder.vue'
 
 // Props
 const props = defineProps({
@@ -248,6 +198,7 @@ const emit = defineEmits([
   'question-added',
   'question-updated',
   'question-deleted',
+  'question-reorder',
   'group-reorder'
 ])
 
@@ -348,44 +299,23 @@ const duplicateGroup = async () => {
   }
 }
 
-const getQuestionTypeName = (type) => {
-  if (typeof type === 'string') {
-    // Find question type by slug
-    const questionType = props.questionTypes.find(qt => qt.slug === type)
-    return questionType?.name || type
-  }
-  return type?.name || type?.slug || 'Unknown'
+// Event handlers for QuestionBuilder
+const handleQuestionUpdate = (questionData) => {
+  emit('question-updated', questionData)
 }
 
-const updateGroupedQuestion = async (question) => {
-  try {
-    await formBuilderApi.updateGroupedQuestion(
-      props.formSlug, 
-      props.pageId, 
-      props.group.id, 
-      question.id, 
-      question
-    )
-    emit('question-updated', question)
-  } catch (error) {
-    console.error('Error updating grouped question:', error)
-  }
+const handleQuestionDelete = () => {
+  // QuestionBuilder handles the deletion, we just need to emit the event
+  emit('question-deleted')
 }
 
-const toggleQuestionRequired = async (question) => {
-  question.required = !question.required
-  await updateGroupedQuestion(question)
+const handleQuestionAdd = (questionData) => {
+  emit('question-added', questionData)
 }
 
-const deleteGroupedQuestion = async (question) => {
-  if (confirm(`Are you sure you want to delete "${question.name}"?`)) {
-    try {
-      await formBuilderApi.deleteGroupedQuestion(props.formSlug, props.pageId, props.group.id, question.id)
-      emit('question-deleted', question.id)
-    } catch (error) {
-      console.error('Error deleting grouped question:', error)
-    }
-  }
+const handleQuestionReorder = (reorderData) => {
+  // Forward the reorder event to parent
+  emit('question-reorder', reorderData)
 }
 
 // Drag and drop handlers

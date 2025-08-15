@@ -112,6 +112,7 @@
               <TagPill 
                 :text="page.tag_text"
                 :hover-text="page.tag_hover_text"
+                :link="page.tag_link"
                 :display-condition="page.tag_display_condition"
                 :form-data="formData"
                 variant="warning"

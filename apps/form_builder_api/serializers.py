@@ -193,7 +193,7 @@ class FormPageSerializer(serializers.ModelSerializer):
         model = Page
         fields = [
             'id', 'name', 'slug', 'order', 'conditional_logic', 'disabled_condition',
-            'tag_text', 'tag_hover_text', 'tag_display_condition',
+            'tag_text', 'tag_hover_text', 'tag_display_condition', 'tag_link',
             'config', 'questions', 'question_groups', 'is_disabled'
         ]
 
@@ -254,7 +254,7 @@ class PageSerializer(serializers.ModelSerializer):
         model = Page
         fields = [
             'id', 'name', 'slug', 'order', 'conditional_logic', 
-            'tag_text', 'tag_hover_text', 'tag_display_condition',
+            'tag_text', 'tag_hover_text', 'tag_display_condition', 'tag_link',
             'config', 'questions', 'question_groups'
         ]
 
@@ -456,7 +456,7 @@ class CreatePageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Page
-        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'tag_text', 'tag_hover_text', 'tag_display_condition', 'config']
+        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'tag_text', 'tag_hover_text', 'tag_display_condition', 'tag_link', 'config']
         
 
 class UpdatePageSerializer(serializers.ModelSerializer):
@@ -464,7 +464,7 @@ class UpdatePageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Page
-        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'tag_text', 'tag_hover_text', 'tag_display_condition', 'config']
+        fields = ['name', 'slug', 'conditional_logic', 'disabled_condition', 'tag_text', 'tag_hover_text', 'tag_display_condition', 'tag_link', 'config']
 
 
 class CreateQuestionSerializer(serializers.ModelSerializer):

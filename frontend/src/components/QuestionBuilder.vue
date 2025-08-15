@@ -1,7 +1,6 @@
 <template>
   <div 
-    class="question-builder bg-gray-50 border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
-    :class="{ 'dragging': isDragging, 'drag-over': isDragOver }"
+    :class="[containerClasses, { 'dragging': isDragging, 'drag-over': isDragOver }]"
     draggable="true"
     @dragstart="handleDragStart"
     @dragend="handleDragEnd"
@@ -45,6 +44,18 @@
                 @keyup.enter="updateQuestion"
                 placeholder="Question text"
                 class="w-full text-sm text-gray-600 bg-transparent border-none p-0 focus:ring-2 focus:ring-blue-500 rounded"
+              />
+            </div>
+            
+            <!-- Question Slug (Tertiary) -->
+            <div class="flex items-center space-x-2">
+              <span class="text-xs text-gray-400">slug:</span>
+              <input
+                v-model="editableQuestion.slug"
+                @blur="updateQuestion"
+                @keyup.enter="updateQuestion"
+                placeholder="question-slug"
+                class="flex-1 text-xs text-gray-500 bg-transparent border-none p-0 focus:ring-2 focus:ring-blue-500 rounded font-mono"
               />
             </div>
           </div>
@@ -216,6 +227,14 @@ const props = defineProps({
   formSlug: {
     type: String,
     required: true
+  },
+  isGrouped: {
+    type: Boolean,
+    default: false
+  },
+  groupId: {
+    type: String,
+    default: null
   }
 })
 
@@ -231,14 +250,37 @@ const isDragOver = ref(false)
 
 // Computed properties
 const questionType = computed(() => {
+  // Handle case where type is a string (slug)
+  if (typeof props.question.type === 'string') {
+    return props.questionTypes.find(qt => qt.slug === props.question.type)
+  }
+  // Handle case where type is an object with slug property
   return props.questionTypes.find(qt => qt.slug === props.question.type?.slug)
 })
 
 const questionTypeName = computed(() => {
-  return questionType.value?.name || props.question.type?.name || 'Unknown'
+  // If we found the question type in our list
+  if (questionType.value?.name) {
+    return questionType.value.name
+  }
+  
+  // Fallback to the type data itself
+  if (typeof props.question.type === 'string') {
+    return props.question.type
+  }
+  
+  return props.question.type?.name || props.question.type?.slug || 'Unknown'
 })
 
 const conditionalLogicString = ref(JSON.stringify(props.question.conditional_logic || {}, null, 2))
+
+// Computed for styling based on whether question is grouped
+const containerClasses = computed(() => {
+  const baseClasses = "question-builder border rounded-lg p-4 hover:border-blue-300 transition-colors"
+  return props.isGrouped 
+    ? `${baseClasses} bg-gray-50 border-gray-200`
+    : `${baseClasses} bg-gray-50 border-gray-200`
+})
 
 // Watch for prop changes
 watch(() => props.question, (newQuestion) => {
@@ -260,12 +302,23 @@ const updateQuestion = async () => {
       conditional_logic: editableQuestion.value.conditional_logic || {}
     }
     
-    const response = await formBuilderApi.updateQuestion(
-      props.formSlug,
-      props.pageId,
-      props.question.id,
-      updateData
-    )
+    let response
+    if (props.isGrouped && props.groupId) {
+      response = await formBuilderApi.updateGroupedQuestion(
+        props.formSlug,
+        props.pageId,
+        props.groupId,
+        props.question.id,
+        updateData
+      )
+    } else {
+      response = await formBuilderApi.updateQuestion(
+        props.formSlug,
+        props.pageId,
+        props.question.id,
+        updateData
+      )
+    }
     
     emit('question-updated', response.data)
   } catch (error) {
@@ -334,11 +387,20 @@ const duplicateQuestion = async () => {
 const deleteQuestion = async () => {
   if (confirm(`Are you sure you want to delete this question: "${editableQuestion.value.name}"?`)) {
     try {
-      await formBuilderApi.deleteQuestion(
-        props.formSlug,
-        props.pageId,
-        props.question.id
-      )
+      if (props.isGrouped && props.groupId) {
+        await formBuilderApi.deleteGroupedQuestion(
+          props.formSlug,
+          props.pageId,
+          props.groupId,
+          props.question.id
+        )
+      } else {
+        await formBuilderApi.deleteQuestion(
+          props.formSlug,
+          props.pageId,
+          props.question.id
+        )
+      }
       emit('question-deleted')
     } catch (error) {
       console.error('Failed to delete question:', error)

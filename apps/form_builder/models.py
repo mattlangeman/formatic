@@ -46,6 +46,7 @@ class DynamicForm(models.Model):
                 'tag_text': page.tag_text,
                 'tag_hover_text': page.tag_hover_text,
                 'tag_display_condition': page.tag_display_condition,
+                'tag_link': page.tag_link,
                 'config': page.config,
                 'questions': [],
                 'question_groups': []
@@ -167,6 +168,11 @@ class Page(models.Model):
         default=dict,
         blank=True,
         help_text="Condition that determines when the tag should be displayed"
+    )
+    tag_link = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="Optional URL to make the tag clickable"
     )
     config = models.JSONField(default=dict, blank=True)
     created_datetime = models.DateTimeField(default=timezone.now)
